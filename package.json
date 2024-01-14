@@ -1,0 +1,23 @@
+{
+  "name": "nestjs-security",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KIMBEOBWOO/nestjs-security.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "test:set-up": "docker-compose -f test/docker-compose.yml up -d --build",
+    "test": "yarn test:set-up & jest --detectOpenHandles"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT"
+}

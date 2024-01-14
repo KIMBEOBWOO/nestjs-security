@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["es5", "es6", "dom"],
+    "declaration": true,
+    "removeComments": false,
+    "noLib": false,
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "es6",
+    "sourceMap": true,
+    "outDir": "dist"
+  },
+  "include": ["src", "test"]
+}
