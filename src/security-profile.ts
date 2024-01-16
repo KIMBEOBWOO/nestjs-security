@@ -1,6 +1,1 @@
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-export abstract class BaseSecurityProfile {
-  abstract getIPWhiteList(): string[];
-}
+export abstract class SecurityProfile {}

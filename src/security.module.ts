@@ -1,35 +1,12 @@
-import { DynamicModule, Module, Type } from '@nestjs/common';
-import { APP_GUARD, DiscoveryModule } from '@nestjs/core';
-import { IPCheckGuard } from './ip-check.guard';
-import { BaseSecurityProfile } from './security-profile';
-
-const SECURITY_PROFILE_INJECT_PREFIX = '@nestj-security/profile/';
-
-interface SecurityModuleOption {
-  profiles: Type<BaseSecurityProfile>[];
-}
+import { DynamicModule, Module } from '@nestjs/common';
 
 @Module({})
 export class SecurityModule {
-  static forRoot(option: SecurityModuleOption): DynamicModule {
-    const { profiles } = option;
-
-    const profileProviders = profiles.map((profile) => ({
-      provide: SECURITY_PROFILE_INJECT_PREFIX + profile.name,
-      useClass: profile,
-    }));
-
+  static forRoot(): DynamicModule {
     return {
-      imports: [DiscoveryModule],
+      imports: [],
       module: SecurityModule,
-      providers: [
-        {
-          provide: APP_GUARD,
-          useClass: IPCheckGuard,
-        },
-        ...profileProviders,
-      ],
-      exports: [...profileProviders.map((provider) => provider.provide)],
+      providers: [],
     };
   }
 }
