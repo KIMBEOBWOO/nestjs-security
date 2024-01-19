@@ -1,12 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable, Type } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
-import { Observable } from 'rxjs';
 import { getClientIp } from '@supercharge/request-ip/dist';
-import {
-  SECURITY_METADATA_KEY,
-  SECURITY_PROFILE_METADATA_KEY,
-} from '../decorators/security.decorator';
+import { SECURITY_METADATA_KEY, SECURITY_PROFILE_METADATA_KEY } from '../decorators';
 import { IPValidationSecurityProfile } from '../interfaces';
 
 @Injectable()
@@ -34,7 +30,7 @@ export class IPCheckGuard implements CanActivate {
       });
   }
 
-  canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
+  async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
 
     const requiredProfiles = this.getRequiredProfiles(context);
@@ -43,7 +39,7 @@ export class IPCheckGuard implements CanActivate {
       return true;
     }
 
-    const ipWhiteList = this.getIPWhiteList(requiredProfiles);
+    const ipWhiteList = await this.getIPWhiteList(requiredProfiles);
     const clientIP = getClientIp(request);
 
     // If there is no ipWhiteList, not allow all IP addresses.
@@ -63,13 +59,18 @@ export class IPCheckGuard implements CanActivate {
     );
   }
 
-  private getIPWhiteList(requiredProfiles: Type<IPValidationSecurityProfile>[]): string[] {
+  private async getIPWhiteList(
+    requiredProfiles: Type<IPValidationSecurityProfile>[],
+  ): Promise<string[]> {
     const mapValues = this.profileMap.values();
     const requiredProfilesNames = requiredProfiles.map((profile) => profile.name);
-    const ipWhiteList = Array.from(mapValues)
-      .filter((profile) => profile.name && requiredProfilesNames.includes(profile.name))
-      .map((profile) => profile.instance.getIPWhiteList())
-      .flat();
+    const ipWhiteList = (
+      await Promise.all(
+        Array.from(mapValues)
+          .filter((profile) => profile.name && requiredProfilesNames.includes(profile.name))
+          .map((profile) => profile.instance.getIPWhiteList()),
+      )
+    ).flat();
 
     return ipWhiteList;
   }

@@ -83,7 +83,7 @@ describe.each(testCases)(
     })
     class TestModule {
       configure(consumer: MiddlewareConsumer) {
-        consumer.apply(IPCheckMiddleware.setProfiles(...profileList)).forRoutes(controller);
+        consumer.apply(IPCheckMiddleware.allowProfiles(...profileList)).forRoutes(controller);
       }
     }
 

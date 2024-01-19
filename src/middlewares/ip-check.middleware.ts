@@ -10,7 +10,7 @@ export class IPCheckMiddleware implements NestMiddleware {
   private readonly profileMap = new Map<string, InstanceWrapper<IPValidationSecurityProfile>>();
   private static requiredProfiles: Type<IPValidationSecurityProfile>[] = [];
 
-  static setProfiles(...profileList: Type<IPValidationSecurityProfile>[]) {
+  static allowProfiles(...profileList: Type<IPValidationSecurityProfile>[]) {
     this.requiredProfiles = profileList;
     return this;
   }
@@ -33,7 +33,7 @@ export class IPCheckMiddleware implements NestMiddleware {
       });
   }
 
-  use(req: Request, _: Response, next: (error?: unknown) => void) {
+  async use(req: Request, _: Response, next: (error?: unknown) => void) {
     const clientIP = getClientIp(req);
 
     // If there is no ipWhiteList, not allow all IP addresses.
@@ -43,7 +43,7 @@ export class IPCheckMiddleware implements NestMiddleware {
 
     const requiredProfiles = IPCheckMiddleware.requiredProfiles;
     if (requiredProfiles.length > 0) {
-      const ipWhiteList = this.getIPWhiteList(IPCheckMiddleware.requiredProfiles);
+      const ipWhiteList = await this.getIPWhiteList(IPCheckMiddleware.requiredProfiles);
 
       if (!ipWhiteList.includes(clientIP)) {
         throw new ForbiddenException();
@@ -53,13 +53,18 @@ export class IPCheckMiddleware implements NestMiddleware {
     next();
   }
 
-  private getIPWhiteList(requiredProfiles: Type<IPValidationSecurityProfile>[]): string[] {
+  private async getIPWhiteList(
+    requiredProfiles: Type<IPValidationSecurityProfile>[],
+  ): Promise<string[]> {
     const mapValues = this.profileMap.values();
     const requiredProfilesNames = requiredProfiles.map((profile) => profile.name);
-    const ipWhiteList = Array.from(mapValues)
-      .filter((profile) => profile.name && requiredProfilesNames.includes(profile.name))
-      .map((profile) => profile.instance.getIPWhiteList())
-      .flat();
+    const ipWhiteList = (
+      await Promise.all(
+        Array.from(mapValues)
+          .filter((profile) => profile.name && requiredProfilesNames.includes(profile.name))
+          .map((profile) => profile.instance.getIPWhiteList()),
+      )
+    ).flat();
 
     return ipWhiteList;
   }

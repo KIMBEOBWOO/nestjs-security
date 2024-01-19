@@ -6,6 +6,10 @@ export class TestSecurityProfile implements IPValidationSecurityProfile {
   getIPWhiteList(): string[] {
     return ['127.0.0.1', '192.168.0.1', '192.168.0.2'];
   }
+
+  getIPBlackList(): string[] | Promise<string[]> {
+    return [];
+  }
 }
 
 @SecurityProfile()
@@ -19,5 +23,9 @@ export class TestSecurityProfile2 implements IPValidationSecurityProfile {
     }
 
     return [ipWhiteList];
+  }
+
+  getIPBlackList(): string[] | Promise<string[]> {
+    return [];
   }
 }
