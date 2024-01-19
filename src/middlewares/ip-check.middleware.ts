@@ -3,7 +3,7 @@ import { DiscoveryService } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { getClientIp } from '@supercharge/request-ip';
 import { IPValidationSecurityProfile } from '../interfaces';
-import { SECURITY_PROFILE_METADATA_KEY } from '../decorators/security.decorator';
+import { SECURITY_PROFILE_METADATA_KEY } from '../decorators';
 
 @Injectable()
 export class IPCheckMiddleware implements NestMiddleware {
