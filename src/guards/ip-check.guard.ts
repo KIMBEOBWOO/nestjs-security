@@ -3,8 +3,11 @@ import { DiscoveryService, Reflector } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { Observable } from 'rxjs';
 import { getClientIp } from '@supercharge/request-ip/dist';
-import { SECURITY_METADATA_KEY } from './security.decorator';
-import { IPValidationSecurityProfile } from './interfaces';
+import {
+  SECURITY_METADATA_KEY,
+  SECURITY_PROFILE_METADATA_KEY,
+} from '../decorators/security.decorator';
+import { IPValidationSecurityProfile } from '../interfaces';
 
 @Injectable()
 export class IPCheckGuard implements CanActivate {
@@ -14,7 +17,14 @@ export class IPCheckGuard implements CanActivate {
     private readonly discoveryService: DiscoveryService,
     private readonly reflector: Reflector,
   ) {
-    const instanceWrapperFilter = (provider: InstanceWrapper) => true;
+    const instanceWrapperFilter = (provider: InstanceWrapper) => {
+      if (provider.metatype) {
+        const metadata = Reflect.getMetadata(SECURITY_PROFILE_METADATA_KEY, provider.metatype);
+        if (metadata) return true;
+      }
+
+      return false;
+    };
 
     this.discoveryService
       .getProviders()

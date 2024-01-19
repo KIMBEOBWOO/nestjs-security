@@ -1,4 +1,4 @@
-export * from './security.module';
-export * from './ip-check.guard';
-export * from './security.decorator';
+export * from './decorators';
 export * from './interfaces';
+export * from './guards';
+export * from './middlewares';

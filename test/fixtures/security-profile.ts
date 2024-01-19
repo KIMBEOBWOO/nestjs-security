@@ -1,15 +1,14 @@
-import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IPValidationSecurityProfile } from '../../src';
+import { IPValidationSecurityProfile, SecurityProfile } from '../../src';
 
-@Injectable()
+@SecurityProfile()
 export class TestSecurityProfile implements IPValidationSecurityProfile {
   getIPWhiteList(): string[] {
     return ['127.0.0.1', '192.168.0.1', '192.168.0.2'];
   }
 }
 
-@Injectable()
+@SecurityProfile()
 export class TestSecurityProfile2 implements IPValidationSecurityProfile {
   constructor(private readonly configService: ConfigService) {}
 

@@ -1,4 +1,4 @@
-import { SecurityModule, Security } from '../../src';
+import { Security } from '../../src';
 import { Test } from '@nestjs/testing';
 import { DiscoveryModule, NestApplication } from '@nestjs/core';
 import { Controller, Get, HttpStatus, Type } from '@nestjs/common';
@@ -38,7 +38,7 @@ describe('IPCheckGuard', () => {
   beforeAll(async () => {
     const profileList: Type<unknown>[] = [TestSecurityProfile, TestSecurityProfile2];
     const module = await Test.createTestingModule({
-      imports: [AppModule, DiscoveryModule, SecurityModule.forRoot(), ConfigModule],
+      imports: [AppModule, DiscoveryModule, ConfigModule],
       controllers: [TestController1],
       providers: [...profileList],
     }).compile();
