@@ -5,6 +5,7 @@ import { Controller, Get, HttpStatus, MiddlewareConsumer, Module } from '@nestjs
 import { AppModule, TestSecurityProfile, TestSecurityProfile2 } from '../fixtures';
 import * as request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
+import { SecurityModule } from '../../src/security.module';
 
 @Controller('test')
 class SingleProfileContorller {
@@ -77,7 +78,7 @@ describe.each(testCases)(
     let app: NestApplication;
 
     @Module({
-      imports: [DiscoveryModule],
+      imports: [DiscoveryModule, SecurityModule.forRoot()],
       controllers: [controller],
       providers: [],
     })

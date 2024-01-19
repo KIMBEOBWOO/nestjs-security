@@ -11,11 +11,17 @@ export const Security = {
     applyDecorators(AllowProfiles(...profiles), UseGuards(IPCheckGuard)),
 } as const;
 
+export const DEFULAT_SECURITY_PROFILE_NAME = '@nestj-security/default';
 export const SECURITY_PROFILE_METADATA_KEY = '@nestj-security/security-profile-metadata';
-const SetSecurityProfileMetadata = () => {
+const SetSecurityProfileMetadata = (name?: string) => {
   return function (target: any) {
-    Reflect.defineMetadata(SECURITY_PROFILE_METADATA_KEY, true, target);
+    Reflect.defineMetadata(
+      SECURITY_PROFILE_METADATA_KEY,
+      name || DEFULAT_SECURITY_PROFILE_NAME,
+      target,
+    );
   };
 };
 
-export const SecurityProfile = () => applyDecorators(Injectable(), SetSecurityProfileMetadata());
+export const SecurityProfile = (name?: string) =>
+  applyDecorators(Injectable(), SetSecurityProfileMetadata(name));

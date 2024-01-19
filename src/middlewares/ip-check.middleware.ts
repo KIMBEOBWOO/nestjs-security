@@ -1,37 +1,17 @@
 import { ForbiddenException, Injectable, NestMiddleware, Type } from '@nestjs/common';
-import { DiscoveryService } from '@nestjs/core';
-import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { getClientIp } from '@supercharge/request-ip';
 import { IPValidationSecurityProfile } from '../interfaces';
-import { SECURITY_PROFILE_METADATA_KEY } from '../decorators';
+import { SecurityProfileStorage } from '../providers';
 
 @Injectable()
 export class IPCheckMiddleware implements NestMiddleware {
-  private readonly profileMap = new Map<string, InstanceWrapper<IPValidationSecurityProfile>>();
   private static requiredProfiles: Type<IPValidationSecurityProfile>[] = [];
-
   static allowProfiles(...profileList: Type<IPValidationSecurityProfile>[]) {
     this.requiredProfiles = profileList;
     return this;
   }
 
-  constructor(private readonly discoveryService: DiscoveryService) {
-    const instanceWrapperFilter = (provider: InstanceWrapper) => {
-      if (provider.metatype) {
-        const metadata = Reflect.getMetadata(SECURITY_PROFILE_METADATA_KEY, provider.metatype);
-        if (metadata) return true;
-      }
-
-      return false;
-    };
-
-    this.discoveryService
-      .getProviders()
-      .filter(instanceWrapperFilter)
-      .forEach((provider: InstanceWrapper) => {
-        this.profileMap.set(provider.name as string, provider);
-      });
-  }
+  constructor(private readonly securityProfileStorage: SecurityProfileStorage) {}
 
   async use(req: Request, _: Response, next: (error?: unknown) => void) {
     const clientIP = getClientIp(req);
@@ -41,9 +21,9 @@ export class IPCheckMiddleware implements NestMiddleware {
       throw new ForbiddenException();
     }
 
-    const requiredProfiles = IPCheckMiddleware.requiredProfiles;
-    if (requiredProfiles.length > 0) {
-      const ipWhiteList = await this.getIPWhiteList(IPCheckMiddleware.requiredProfiles);
+    const requiredProfileNames = IPCheckMiddleware.requiredProfiles.map((profile) => profile.name);
+    if (requiredProfileNames.length > 0) {
+      const ipWhiteList = await this.getIPWhiteList(requiredProfileNames);
 
       if (!ipWhiteList.includes(clientIP)) {
         throw new ForbiddenException();
@@ -53,16 +33,14 @@ export class IPCheckMiddleware implements NestMiddleware {
     next();
   }
 
-  private async getIPWhiteList(
-    requiredProfiles: Type<IPValidationSecurityProfile>[],
-  ): Promise<string[]> {
-    const mapValues = this.profileMap.values();
-    const requiredProfilesNames = requiredProfiles.map((profile) => profile.name);
+  private async getIPWhiteList(requiredProfileNames: string[]): Promise<string[]> {
+    const requiredProfiles = this.securityProfileStorage.getProfile(requiredProfileNames);
+
     const ipWhiteList = (
       await Promise.all(
-        Array.from(mapValues)
-          .filter((profile) => profile.name && requiredProfilesNames.includes(profile.name))
-          .map((profile) => profile.instance.getIPWhiteList()),
+        requiredProfiles.map((profile) =>
+          (profile as IPValidationSecurityProfile).getIPWhiteList(),
+        ),
       )
     ).flat();
 

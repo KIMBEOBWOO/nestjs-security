@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type SecurityProfileType = Function;
+
 export interface IPValidationSecurityProfile {
   getIPWhiteList(): string[] | Promise<string[]>;
   getIPBlackList(): string[] | Promise<string[]>;

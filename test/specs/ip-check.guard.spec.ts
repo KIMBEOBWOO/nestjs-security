@@ -5,6 +5,7 @@ import { Controller, Get, HttpStatus, Type } from '@nestjs/common';
 import { AppModule, TestSecurityProfile, TestSecurityProfile2 } from '../fixtures';
 import * as request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
+import { SecurityModule } from '../../src/security.module';
 
 @Controller('test1')
 class TestController1 {
@@ -38,7 +39,7 @@ describe('IPCheckGuard', () => {
   beforeAll(async () => {
     const profileList: Type<unknown>[] = [TestSecurityProfile, TestSecurityProfile2];
     const module = await Test.createTestingModule({
-      imports: [AppModule, DiscoveryModule, ConfigModule],
+      imports: [AppModule, DiscoveryModule, ConfigModule, SecurityModule.forRoot()],
       controllers: [TestController1],
       providers: [...profileList],
     }).compile();

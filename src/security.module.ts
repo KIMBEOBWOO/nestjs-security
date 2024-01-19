@@ -1,12 +1,15 @@
 import { DynamicModule, Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
+import { SecurityProfileStorage } from './providers';
 
 @Module({})
 export class SecurityModule {
   static forRoot(): DynamicModule {
     return {
-      imports: [],
+      imports: [DiscoveryModule],
       module: SecurityModule,
-      providers: [],
+      providers: [SecurityProfileStorage],
+      exports: [SecurityProfileStorage],
     };
   }
 }
