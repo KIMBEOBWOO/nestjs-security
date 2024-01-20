@@ -58,7 +58,7 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return true when a request comes in with a single profile applied and from an allowed IP address.', async () => {
-      const requestIPAddress = new TestSecurityProfile().getIPWhiteList();
+      const requestIPAddress = new TestSecurityProfile().getIpWhiteList();
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())
@@ -80,7 +80,7 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return false when a request comes in with a single profile applied and not from an IP address.', async () => {
-      const requestIPAddress = new TestSecurityProfile().getIPWhiteList().map((ip) => `${ip}1`);
+      const requestIPAddress = new TestSecurityProfile().getIpWhiteList().map((ip) => `${ip}1`);
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())

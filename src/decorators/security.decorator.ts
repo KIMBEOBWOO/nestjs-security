@@ -23,5 +23,5 @@ const SetSecurityProfileMetadata = (name?: string) => {
   };
 };
 
-export const SecurityProfile = (name?: string) =>
+export const SecurityProfileSchema = (name?: string) =>
   applyDecorators(Injectable(), SetSecurityProfileMetadata(name));

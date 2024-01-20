@@ -1,8 +1,13 @@
-import { CanActivate, ExecutionContext, Injectable, Type } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  Type,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { getClientIp } from '@supercharge/request-ip/dist';
 import { SECURITY_METADATA_KEY } from '../decorators';
-import { IPValidationSecurityProfile } from '../interfaces';
+import { IpWhiteListValidationSecurityProfile } from '../interfaces';
 import { SecurityProfileStorage } from '../providers';
 
 @Injectable()
@@ -15,43 +20,33 @@ export class IPCheckGuard implements CanActivate {
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
 
-    const requiredProfiles = this.getRequiredProfileNames(context);
+    const requiredProfileNames = this.getRequiredProfileNames(context);
     // If there is no requiredProfiles, it means that the request is not decorated with @SetSecurityProfile.
-    if (!requiredProfiles || requiredProfiles.length === 0) {
+    if (!requiredProfileNames || requiredProfileNames.length === 0) {
       return true;
     }
+    const requiredProfiles = this.securityProfileStorage.getProfile(requiredProfileNames);
 
-    const ipWhiteList = await this.getIPWhiteList(requiredProfiles);
-    const clientIP = getClientIp(request);
+    // white list is only one acceptables
+    const validateResults: boolean[] = await Promise.all(
+      requiredProfiles.map((profile: IpWhiteListValidationSecurityProfile) =>
+        profile.validate(request),
+      ),
+    );
 
-    // If there is no ipWhiteList, not allow all IP addresses.
-    if (!clientIP) {
-      return false;
+    if (validateResults.some((result) => result === true)) {
+      return true;
+    } else {
+      throw new ForbiddenException();
     }
-
-    return ipWhiteList.includes(clientIP);
   }
 
   private getRequiredProfileNames(context: ExecutionContext) {
     return this.reflector
-      .getAllAndOverride<Type<IPValidationSecurityProfile>[] | undefined>(SECURITY_METADATA_KEY, [
+      .getAllAndOverride<Type<any>[] | undefined>(SECURITY_METADATA_KEY, [
         context.getHandler(),
         context.getClass(),
       ])
       ?.map((profile) => profile.name);
-  }
-
-  private async getIPWhiteList(requiredProfileNames: string[]): Promise<string[]> {
-    const requiredProfiles = this.securityProfileStorage.getProfile(requiredProfileNames);
-
-    const ipWhiteList = (
-      await Promise.all(
-        requiredProfiles.map((profile) =>
-          (profile as IPValidationSecurityProfile).getIPWhiteList(),
-        ),
-      )
-    ).flat();
-
-    return ipWhiteList;
   }
 }

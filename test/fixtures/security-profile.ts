@@ -1,31 +1,25 @@
 import { ConfigService } from '@nestjs/config';
-import { IPValidationSecurityProfile, SecurityProfile } from '../../src';
+import { IpWhiteListValidationSecurityProfile, SecurityProfileSchema } from '../../src';
 
-@SecurityProfile()
-export class TestSecurityProfile implements IPValidationSecurityProfile {
-  getIPWhiteList(): string[] {
+@SecurityProfileSchema()
+export class TestSecurityProfile extends IpWhiteListValidationSecurityProfile {
+  getIpWhiteList(): string[] {
     return ['127.0.0.1', '192.168.0.1', '192.168.0.2'];
-  }
-
-  getIPBlackList(): string[] | Promise<string[]> {
-    return [];
   }
 }
 
-@SecurityProfile()
-export class TestSecurityProfile2 implements IPValidationSecurityProfile {
-  constructor(private readonly configService: ConfigService) {}
+@SecurityProfileSchema()
+export class TestSecurityProfile2 extends IpWhiteListValidationSecurityProfile {
+  constructor(private readonly configService: ConfigService) {
+    super();
+  }
 
-  getIPWhiteList(): string[] {
+  getIpWhiteList(): string[] {
     const ipWhiteList = this.configService.get<string>('testIPaddress');
     if (!ipWhiteList) {
       throw new Error('IP_WHITE_LIST is not defined.');
     }
 
     return [ipWhiteList];
-  }
-
-  getIPBlackList(): string[] | Promise<string[]> {
-    return [];
   }
 }

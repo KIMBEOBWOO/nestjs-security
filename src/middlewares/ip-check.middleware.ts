@@ -1,12 +1,11 @@
 import { ForbiddenException, Injectable, NestMiddleware, Type } from '@nestjs/common';
 import { getClientIp } from '@supercharge/request-ip';
-import { IPValidationSecurityProfile } from '../interfaces';
 import { SecurityProfileStorage } from '../providers';
 
 @Injectable()
 export class IPCheckMiddleware implements NestMiddleware {
-  private static requiredProfiles: Type<IPValidationSecurityProfile>[] = [];
-  static allowProfiles(...profileList: Type<IPValidationSecurityProfile>[]) {
+  private static requiredProfiles: Type<any>[] = [];
+  static allowProfiles(...profileList: Type<any>[]) {
     this.requiredProfiles = profileList;
     return this;
   }
@@ -37,11 +36,7 @@ export class IPCheckMiddleware implements NestMiddleware {
     const requiredProfiles = this.securityProfileStorage.getProfile(requiredProfileNames);
 
     const ipWhiteList = (
-      await Promise.all(
-        requiredProfiles.map((profile) =>
-          (profile as IPValidationSecurityProfile).getIPWhiteList(),
-        ),
-      )
+      await Promise.all(requiredProfiles.map((profile) => profile.getIPWhiteList()))
     ).flat();
 
     return ipWhiteList;

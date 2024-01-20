@@ -46,14 +46,14 @@ const testCases = [
   {
     controller: SingleProfileContorller,
     profileList: [TestSecurityProfile],
-    requestIPs: [...new TestSecurityProfile().getIPWhiteList()],
+    requestIPs: [...new TestSecurityProfile().getIpWhiteList()],
     expectedStatus: successHttpStatus,
   },
   // Multiple profiles, allow only IP addresses in the profiles.
   {
     controller: MultipleProfileController,
     profileList: [TestSecurityProfile, TestSecurityProfile2],
-    requestIPs: [...new TestSecurityProfile().getIPWhiteList(), '172.16.0.0'],
+    requestIPs: [...new TestSecurityProfile().getIpWhiteList(), '172.16.0.0'],
     expectedStatus: successHttpStatus,
   },
   // Single profile, not allow IP addresses not in the profile.
