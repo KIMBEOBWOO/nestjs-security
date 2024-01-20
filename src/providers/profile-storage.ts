@@ -2,10 +2,11 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService } from '@nestjs/core';
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { DEFULAT_SECURITY_PROFILE_NAME, SECURITY_PROFILE_METADATA_KEY } from '../decorators';
+import { SecurityProfile } from '../interfaces';
 
 @Injectable()
 export class ProfileStorage implements OnApplicationBootstrap {
-  private readonly profileMap = new Map<string, any>();
+  private readonly profileMap = new Map<string, SecurityProfile>();
 
   constructor(private readonly discoveryService: DiscoveryService) {}
 

@@ -1,6 +1,6 @@
 import { applyDecorators, Injectable, Type, UseGuards } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
-import { IPCheckGuard } from '../guards';
+import { IpWhiteListGuard } from '../guards';
 
 export const SECURITY_METADATA_KEY = '@nestj-security/security-metadata';
 const AllowProfiles = (...profiles: Type<unknown>[]) =>
@@ -8,7 +8,7 @@ const AllowProfiles = (...profiles: Type<unknown>[]) =>
 
 export const Security = {
   AllowProfiles: (...profiles: Type<unknown>[]) =>
-    applyDecorators(AllowProfiles(...profiles), UseGuards(IPCheckGuard)),
+    applyDecorators(AllowProfiles(...profiles), UseGuards(IpWhiteListGuard)),
 } as const;
 
 export const DEFULAT_SECURITY_PROFILE_NAME = '@nestj-security/default';
