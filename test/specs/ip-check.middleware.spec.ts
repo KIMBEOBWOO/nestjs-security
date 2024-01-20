@@ -1,11 +1,10 @@
 import { IPCheckMiddleware } from '../../src';
 import { Test } from '@nestjs/testing';
-import { DiscoveryModule, NestApplication } from '@nestjs/core';
+import { NestApplication } from '@nestjs/core';
 import { Controller, Get, HttpStatus, MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppModule, TestSecurityProfile, TestSecurityProfile2 } from '../fixtures';
 import * as request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
-import { SecurityModule } from '../../src/security.module';
 
 @Controller('test')
 class SingleProfileContorller {
@@ -46,14 +45,14 @@ const testCases = [
   {
     controller: SingleProfileContorller,
     profileList: [TestSecurityProfile],
-    requestIPs: [...new TestSecurityProfile().getIpWhiteList()],
+    requestIPs: ['127.0.0.1', '192.168.0.1', '192.168.0.2'],
     expectedStatus: successHttpStatus,
   },
   // Multiple profiles, allow only IP addresses in the profiles.
   {
     controller: MultipleProfileController,
     profileList: [TestSecurityProfile, TestSecurityProfile2],
-    requestIPs: [...new TestSecurityProfile().getIpWhiteList(), '172.16.0.0'],
+    requestIPs: ['127.0.0.1', '192.168.0.1', '192.168.0.2', '172.16.0.0'],
     expectedStatus: successHttpStatus,
   },
   // Single profile, not allow IP addresses not in the profile.
@@ -78,7 +77,7 @@ describe.each(testCases)(
     let app: NestApplication;
 
     @Module({
-      imports: [DiscoveryModule, SecurityModule.forRoot()],
+      imports: [],
       controllers: [controller],
       providers: [],
     })
@@ -90,8 +89,7 @@ describe.each(testCases)(
 
     beforeAll(async () => {
       const module = await Test.createTestingModule({
-        imports: [AppModule, TestModule, DiscoveryModule, ConfigModule],
-        providers: [...profileList],
+        imports: [AppModule, TestModule, ConfigModule],
       }).compile();
 
       app = module.createNestApplication();

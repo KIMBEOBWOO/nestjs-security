@@ -1,6 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
-import { SecurityProfileStorage } from './providers';
+import { ProfileStorage } from './providers';
 
 @Module({})
 export class SecurityModule {
@@ -8,8 +8,10 @@ export class SecurityModule {
     return {
       imports: [DiscoveryModule],
       module: SecurityModule,
-      providers: [SecurityProfileStorage],
-      exports: [SecurityProfileStorage],
+      providers: [ProfileStorage],
+      exports: [ProfileStorage],
+      // TODO : if resolve securityProfileStorage dependencies, remove global
+      global: true,
     };
   }
 }

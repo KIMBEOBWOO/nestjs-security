@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NestMiddleware, Type } from '@nestjs/common';
 import { getClientIp } from '@supercharge/request-ip';
-import { SecurityProfileStorage } from '../providers';
+import { ProfileOperator } from '../common';
+import { ProfileStorage, ProfileValidator } from '../providers';
 
 @Injectable()
 export class IPCheckMiddleware implements NestMiddleware {
@@ -10,35 +11,39 @@ export class IPCheckMiddleware implements NestMiddleware {
     return this;
   }
 
-  constructor(private readonly securityProfileStorage: SecurityProfileStorage) {}
+  constructor(private readonly profileStorage: ProfileStorage) {}
 
-  async use(req: Request, _: Response, next: (error?: unknown) => void) {
-    const clientIP = getClientIp(req);
+  async use(request: Request, _: Response, next: (error?: unknown) => void) {
+    const clientIP = getClientIp(request);
 
     // If there is no ipWhiteList, not allow all IP addresses.
     if (!clientIP) {
       throw new ForbiddenException();
     }
 
-    const requiredProfileNames = IPCheckMiddleware.requiredProfiles.map((profile) => profile.name);
-    if (requiredProfileNames.length > 0) {
-      const ipWhiteList = await this.getIPWhiteList(requiredProfileNames);
-
-      if (!ipWhiteList.includes(clientIP)) {
-        throw new ForbiddenException();
-      }
+    const requiredProfileNames = this.getRequiredProfileNames();
+    if (!requiredProfileNames || requiredProfileNames.length === 0) {
+      next();
+      return;
     }
+    const requiredProfiles = this.profileStorage.getProfile(requiredProfileNames);
 
-    next();
+    // white list is only one acceptables
+    const isValid = await ProfileValidator.applyProfiles(
+      requiredProfiles,
+      ProfileOperator.AT_LEAST_ONE,
+      request,
+    );
+
+    if (isValid) {
+      next();
+      return;
+    } else {
+      throw new ForbiddenException();
+    }
   }
 
-  private async getIPWhiteList(requiredProfileNames: string[]): Promise<string[]> {
-    const requiredProfiles = this.securityProfileStorage.getProfile(requiredProfileNames);
-
-    const ipWhiteList = (
-      await Promise.all(requiredProfiles.map((profile) => profile.getIPWhiteList()))
-    ).flat();
-
-    return ipWhiteList;
+  private getRequiredProfileNames() {
+    return IPCheckMiddleware.requiredProfiles.map((profile) => profile.name);
   }
 }

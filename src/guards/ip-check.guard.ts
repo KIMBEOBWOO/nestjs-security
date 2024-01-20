@@ -6,15 +6,15 @@ import {
   Type,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ProfileOperator } from '../common';
 import { SECURITY_METADATA_KEY } from '../decorators';
-import { IpWhiteListValidationSecurityProfile } from '../interfaces';
-import { SecurityProfileStorage } from '../providers';
+import { ProfileStorage, ProfileValidator } from '../providers';
 
 @Injectable()
 export class IPCheckGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly securityProfileStorage: SecurityProfileStorage,
+    private readonly profileStorage: ProfileStorage,
   ) {}
 
   async canActivate(context: ExecutionContext) {
@@ -25,16 +25,16 @@ export class IPCheckGuard implements CanActivate {
     if (!requiredProfileNames || requiredProfileNames.length === 0) {
       return true;
     }
-    const requiredProfiles = this.securityProfileStorage.getProfile(requiredProfileNames);
+    const requiredProfiles = this.profileStorage.getProfile(requiredProfileNames);
 
     // white list is only one acceptables
-    const validateResults: boolean[] = await Promise.all(
-      requiredProfiles.map((profile: IpWhiteListValidationSecurityProfile) =>
-        profile.validate(request),
-      ),
+    const isValid = await ProfileValidator.applyProfiles(
+      requiredProfiles,
+      ProfileOperator.AT_LEAST_ONE,
+      request,
     );
 
-    if (validateResults.some((result) => result === true)) {
+    if (isValid) {
       return true;
     } else {
       throw new ForbiddenException();
