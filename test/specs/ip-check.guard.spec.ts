@@ -1,10 +1,9 @@
 import { Security } from '../../src';
 import { Test } from '@nestjs/testing';
-import { DiscoveryModule, NestApplication } from '@nestjs/core';
-import { Controller, Get, HttpStatus, Type } from '@nestjs/common';
+import { NestApplication } from '@nestjs/core';
+import { Controller, Get, HttpStatus } from '@nestjs/common';
 import { AppModule, TestSecurityProfile, TestSecurityProfile2 } from '../fixtures';
 import * as request from 'supertest';
-import { ConfigModule } from '@nestjs/config';
 
 @Controller('test1')
 class TestController1 {
@@ -36,11 +35,9 @@ describe('IPCheckGuard', () => {
   let app: NestApplication;
 
   beforeAll(async () => {
-    const profileList: Type<unknown>[] = [TestSecurityProfile, TestSecurityProfile2];
     const module = await Test.createTestingModule({
-      imports: [AppModule, DiscoveryModule, ConfigModule],
+      imports: [AppModule],
       controllers: [TestController1],
-      providers: [...profileList],
     }).compile();
 
     app = module.createNestApplication();
@@ -57,7 +54,7 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return true when a request comes in with a single profile applied and from an allowed IP address.', async () => {
-      const requestIPAddress = new TestSecurityProfile().getIPWhiteList();
+      const requestIPAddress = ['127.0.0.1', '192.168.0.1', '192.168.0.2'];
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())
@@ -79,7 +76,9 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return false when a request comes in with a single profile applied and not from an IP address.', async () => {
-      const requestIPAddress = new TestSecurityProfile().getIPWhiteList().map((ip) => `${ip}1`);
+      const requestIPAddress = ['127.0.0.1', '192.168.0.1', '192.168.0.2'].map(
+        (ip) => `${ip.slice(0, ip.length - 1)}255`,
+      );
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())

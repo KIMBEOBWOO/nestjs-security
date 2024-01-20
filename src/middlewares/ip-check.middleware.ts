@@ -1,66 +1,49 @@
 import { ForbiddenException, Injectable, NestMiddleware, Type } from '@nestjs/common';
-import { DiscoveryService } from '@nestjs/core';
-import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper';
 import { getClientIp } from '@supercharge/request-ip';
-import { IPValidationSecurityProfile } from '../interfaces';
-import { SECURITY_PROFILE_METADATA_KEY } from '../decorators/security.decorator';
+import { ProfileOperator } from '../common';
+import { ProfileStorage, ProfileValidator } from '../providers';
 
 @Injectable()
 export class IPCheckMiddleware implements NestMiddleware {
-  private readonly profileMap = new Map<string, InstanceWrapper<IPValidationSecurityProfile>>();
-  private static requiredProfiles: Type<IPValidationSecurityProfile>[] = [];
-
-  static setProfiles(...profileList: Type<IPValidationSecurityProfile>[]) {
+  private static requiredProfiles: Type<any>[] = [];
+  static allowProfiles(...profileList: Type<any>[]) {
     this.requiredProfiles = profileList;
     return this;
   }
 
-  constructor(private readonly discoveryService: DiscoveryService) {
-    const instanceWrapperFilter = (provider: InstanceWrapper) => {
-      if (provider.metatype) {
-        const metadata = Reflect.getMetadata(SECURITY_PROFILE_METADATA_KEY, provider.metatype);
-        if (metadata) return true;
-      }
+  constructor(private readonly profileStorage: ProfileStorage) {}
 
-      return false;
-    };
-
-    this.discoveryService
-      .getProviders()
-      .filter(instanceWrapperFilter)
-      .forEach((provider: InstanceWrapper) => {
-        this.profileMap.set(provider.name as string, provider);
-      });
-  }
-
-  use(req: Request, _: Response, next: (error?: unknown) => void) {
-    const clientIP = getClientIp(req);
+  async use(request: Request, _: Response, next: (error?: unknown) => void) {
+    const clientIP = getClientIp(request);
 
     // If there is no ipWhiteList, not allow all IP addresses.
     if (!clientIP) {
       throw new ForbiddenException();
     }
 
-    const requiredProfiles = IPCheckMiddleware.requiredProfiles;
-    if (requiredProfiles.length > 0) {
-      const ipWhiteList = this.getIPWhiteList(IPCheckMiddleware.requiredProfiles);
-
-      if (!ipWhiteList.includes(clientIP)) {
-        throw new ForbiddenException();
-      }
+    const requiredProfileNames = this.getRequiredProfileNames();
+    if (!requiredProfileNames || requiredProfileNames.length === 0) {
+      next();
+      return;
     }
+    const requiredProfiles = this.profileStorage.getProfile(requiredProfileNames);
 
-    next();
+    // white list is only one acceptables
+    const isValid = await ProfileValidator.applyProfiles(
+      requiredProfiles,
+      ProfileOperator.AT_LEAST_ONE,
+      request,
+    );
+
+    if (isValid) {
+      next();
+      return;
+    } else {
+      throw new ForbiddenException();
+    }
   }
 
-  private getIPWhiteList(requiredProfiles: Type<IPValidationSecurityProfile>[]): string[] {
-    const mapValues = this.profileMap.values();
-    const requiredProfilesNames = requiredProfiles.map((profile) => profile.name);
-    const ipWhiteList = Array.from(mapValues)
-      .filter((profile) => profile.name && requiredProfilesNames.includes(profile.name))
-      .map((profile) => profile.instance.getIPWhiteList())
-      .flat();
-
-    return ipWhiteList;
+  private getRequiredProfileNames() {
+    return IPCheckMiddleware.requiredProfiles.map((profile) => profile.name);
   }
 }
