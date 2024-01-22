@@ -1,13 +1,13 @@
 import { ForbiddenException, Injectable, NestMiddleware, Type } from '@nestjs/common';
 import { getClientIp } from '@supercharge/request-ip';
 import { ProfileOperator } from '../common';
-import { IpWhiteListValidationSecurityProfile } from '../interfaces';
+import { IpBlackListValidationSecurityProfile } from '../interfaces';
 import { ProfileStorage, ProfileValidator } from '../providers';
 
-type ProfileInputType = Type<IpWhiteListValidationSecurityProfile>[];
+type ProfileInputType = Type<IpBlackListValidationSecurityProfile>[];
 
 @Injectable()
-export class IpWhiteListMiddleware implements NestMiddleware {
+export class IpBlackListMiddleware implements NestMiddleware {
   private static requiredProfiles: ProfileInputType = [];
   static allowProfiles(...profileList: ProfileInputType) {
     this.requiredProfiles = profileList;
@@ -34,7 +34,7 @@ export class IpWhiteListMiddleware implements NestMiddleware {
     // white list is only one acceptables
     const isValid = await ProfileValidator.applyProfiles(
       requiredProfiles,
-      ProfileOperator.AT_LEAST_ONE,
+      ProfileOperator.FOR_EVERY,
       request,
     );
 
@@ -47,6 +47,6 @@ export class IpWhiteListMiddleware implements NestMiddleware {
   }
 
   private getRequiredProfileNames() {
-    return IpWhiteListMiddleware.requiredProfiles.map((profile) => profile.name);
+    return IpBlackListMiddleware.requiredProfiles.map((profile) => profile.name);
   }
 }
