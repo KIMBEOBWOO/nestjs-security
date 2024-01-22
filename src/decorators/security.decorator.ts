@@ -2,12 +2,14 @@ import { applyDecorators, Injectable, Type, UseGuards } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { IpWhiteListGuard } from '../guards';
 
+type ProfileInputType = Type<unknown>[];
+
 export const SECURITY_METADATA_KEY = '@nestj-security/security-metadata';
-const AllowProfiles = (...profiles: Type<unknown>[]) =>
+const AllowProfiles = (...profiles: ProfileInputType) =>
   SetMetadata(SECURITY_METADATA_KEY, profiles);
 
 export const Security = {
-  AllowProfiles: (...profiles: Type<unknown>[]) =>
+  CheckIpWhiteList: (...profiles: ProfileInputType) =>
     applyDecorators(AllowProfiles(...profiles), UseGuards(IpWhiteListGuard)),
 } as const;
 

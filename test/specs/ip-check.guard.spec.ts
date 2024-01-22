@@ -8,19 +8,19 @@ import * as request from 'supertest';
 @Controller('test1')
 class TestController1 {
   @Get('single')
-  @Security.AllowProfiles(TestSecurityProfile)
+  @Security.CheckIpWhiteList(TestSecurityProfile)
   allowSingleProfile() {
     return 'test';
   }
 
   @Get('multiple')
-  @Security.AllowProfiles(TestSecurityProfile, TestSecurityProfile2)
+  @Security.CheckIpWhiteList(TestSecurityProfile, TestSecurityProfile2)
   allowMultipleProfiles() {
     return 'test';
   }
 
   @Get('no-profile')
-  @Security.AllowProfiles()
+  @Security.CheckIpWhiteList()
   noProfile() {
     return 'test';
   }

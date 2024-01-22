@@ -4,7 +4,7 @@ import { ProfileOperator } from '../common';
 import { ProfileStorage, ProfileValidator } from '../providers';
 
 @Injectable()
-export class IPCheckMiddleware implements NestMiddleware {
+export class IpWhiteListMiddleware implements NestMiddleware {
   private static requiredProfiles: Type<any>[] = [];
   static allowProfiles(...profileList: Type<any>[]) {
     this.requiredProfiles = profileList;
@@ -44,6 +44,6 @@ export class IPCheckMiddleware implements NestMiddleware {
   }
 
   private getRequiredProfileNames() {
-    return IPCheckMiddleware.requiredProfiles.map((profile) => profile.name);
+    return IpWhiteListMiddleware.requiredProfiles.map((profile) => profile.name);
   }
 }

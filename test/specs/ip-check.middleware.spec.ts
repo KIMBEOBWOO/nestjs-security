@@ -1,4 +1,4 @@
-import { IPCheckMiddleware } from '../../src';
+import { IpWhiteListMiddleware } from '../../src';
 import { Test } from '@nestjs/testing';
 import { NestApplication } from '@nestjs/core';
 import { Controller, Get, HttpStatus, MiddlewareConsumer, Module } from '@nestjs/common';
@@ -83,7 +83,7 @@ describe.each(testCases)(
     })
     class TestModule {
       configure(consumer: MiddlewareConsumer) {
-        consumer.apply(IPCheckMiddleware.allowProfiles(...profileList)).forRoutes(controller);
+        consumer.apply(IpWhiteListMiddleware.allowProfiles(...profileList)).forRoutes(controller);
       }
     }
 

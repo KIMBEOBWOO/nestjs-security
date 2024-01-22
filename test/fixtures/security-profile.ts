@@ -1,5 +1,9 @@
 import { ConfigService } from '@nestjs/config';
-import { IpWhiteListValidationSecurityProfile, SecurityProfileSchema } from '../../src';
+import {
+  IpBlackListValidationSecurityProfile,
+  IpWhiteListValidationSecurityProfile,
+  SecurityProfileSchema,
+} from '../../src';
 
 @SecurityProfileSchema()
 export class TestSecurityProfile extends IpWhiteListValidationSecurityProfile {
@@ -21,5 +25,12 @@ export class TestSecurityProfile2 extends IpWhiteListValidationSecurityProfile {
     }
 
     return [ipWhiteList];
+  }
+}
+
+@SecurityProfileSchema()
+export class TestSecurityProfile3 extends IpBlackListValidationSecurityProfile {
+  getIpBlackList(): string[] {
+    return ['192.168.1.3', '192.168.1.4'];
   }
 }

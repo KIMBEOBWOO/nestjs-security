@@ -1,1 +1,1 @@
-export * from './ip-check.middleware';
+export * from './ip-white-list.middleware';
