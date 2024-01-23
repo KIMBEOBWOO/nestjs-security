@@ -3,7 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { DiscoveryModule } from '@nestjs/core';
 import { SecurityModule } from '../../src';
 import configuration from './configuration';
-import { TestSecurityProfile, TestSecurityProfile2 } from './security-profile';
+import {
+  NaiveBlackListProfile,
+  NaiveWhiteListProfile,
+  EnvBlackListProfile,
+  EnvWhiteListProfile,
+} from './security-profile';
 
 @Module({
   imports: [
@@ -14,7 +19,12 @@ import { TestSecurityProfile, TestSecurityProfile2 } from './security-profile';
       envFilePath: ['.env.test'],
     }),
   ],
-  providers: [TestSecurityProfile, TestSecurityProfile2],
+  providers: [
+    NaiveBlackListProfile,
+    NaiveWhiteListProfile,
+    EnvBlackListProfile,
+    EnvWhiteListProfile,
+  ],
 })
 export class AppModule {}
 

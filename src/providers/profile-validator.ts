@@ -15,9 +15,14 @@ export class ProfileValidator {
 
     switch (operator) {
       case ProfileOperator.AT_LEAST_ONE:
-        return validateResults.some((result) => result === true);
+        for (const result of validateResults) {
+          if (result === true) return true;
+        }
+        return false;
+
       case ProfileOperator.FOR_EVERY:
         return validateResults.every((result) => result === true);
+
       default:
         throw new Error(`Not Supported Operator Type ${operator}`);
     }
