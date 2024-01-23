@@ -1,8 +1,8 @@
-import { IPCheckMiddleware } from '../../src';
+import { IpBlackListMiddleware } from '../../src';
 import { Test } from '@nestjs/testing';
-import { DiscoveryModule, NestApplication } from '@nestjs/core';
+import { NestApplication } from '@nestjs/core';
 import { Controller, Get, HttpStatus, MiddlewareConsumer, Module } from '@nestjs/common';
-import { AppModule, TestSecurityProfile, TestSecurityProfile2 } from '../fixtures';
+import { AppModule, NaiveBlackListProfile, EnvBlackListProfile } from '../fixtures';
 import * as request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 
@@ -41,32 +41,32 @@ const testCases = [
     requestIPs: ['127.0.0.1'],
     expectedStatus: successHttpStatus,
   },
-  // Single profile, allow only IP addresses in the profile.
+  // Single profile, accept all-pass ip addresses.
   {
     controller: SingleProfileContorller,
-    profileList: [TestSecurityProfile],
-    requestIPs: [...new TestSecurityProfile().getIPWhiteList()],
+    profileList: [NaiveBlackListProfile],
+    requestIPs: ['192.168.2.1', '192.168.2.2', '192.168.2.3'],
     expectedStatus: successHttpStatus,
   },
-  // Multiple profiles, allow only IP addresses in the profiles.
+  // Multiple profiles, accept all-pass ip addresses.
   {
     controller: MultipleProfileController,
-    profileList: [TestSecurityProfile, TestSecurityProfile2],
-    requestIPs: [...new TestSecurityProfile().getIPWhiteList(), '172.16.0.0'],
+    profileList: [NaiveBlackListProfile, EnvBlackListProfile],
+    requestIPs: ['192.168.2.1', '192.168.2.2', '192.168.2.3'],
     expectedStatus: successHttpStatus,
   },
-  // Single profile, not allow IP addresses not in the profile.
+  // Single profile, deny ip addresses in the profile.
   {
     controller: SingleProfileContorller,
-    profileList: [TestSecurityProfile],
-    requestIPs: ['172.217.168.142'],
+    profileList: [NaiveBlackListProfile],
+    requestIPs: [...new NaiveBlackListProfile().getIpBlackList()],
     expectedStatus: failHttpStatus,
   },
-  // Multiple profiles, not allow IP addresses not in the profiles.
+  // Multiple profiles, deny ip addresses in the profile.
   {
     controller: MultipleProfileController,
-    profileList: [TestSecurityProfile, TestSecurityProfile2],
-    requestIPs: ['172.217.168.142'],
+    profileList: [NaiveBlackListProfile, EnvBlackListProfile],
+    requestIPs: [...new NaiveBlackListProfile().getIpBlackList(), '172.16.0.0'],
     expectedStatus: failHttpStatus,
   },
 ];
@@ -77,20 +77,19 @@ describe.each(testCases)(
     let app: NestApplication;
 
     @Module({
-      imports: [DiscoveryModule],
+      imports: [],
       controllers: [controller],
       providers: [],
     })
     class TestModule {
       configure(consumer: MiddlewareConsumer) {
-        consumer.apply(IPCheckMiddleware.setProfiles(...profileList)).forRoutes(controller);
+        consumer.apply(IpBlackListMiddleware.allowProfiles(...profileList)).forRoutes(controller);
       }
     }
 
     beforeAll(async () => {
       const module = await Test.createTestingModule({
-        imports: [AppModule, TestModule, DiscoveryModule, ConfigModule],
-        providers: [...profileList],
+        imports: [AppModule, TestModule, ConfigModule],
       }).compile();
 
       app = module.createNestApplication();

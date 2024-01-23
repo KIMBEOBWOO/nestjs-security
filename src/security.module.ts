@@ -1,15 +1,17 @@
 import { DynamicModule, Module } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
+import { ProfileStorage } from './providers';
 
-/**
- * @deprecated Updated after v0.1.0
- */
 @Module({})
 export class SecurityModule {
   static forRoot(): DynamicModule {
     return {
-      imports: [],
+      imports: [DiscoveryModule],
       module: SecurityModule,
-      providers: [],
+      providers: [ProfileStorage],
+      exports: [ProfileStorage],
+      // TODO : if resolve securityProfileStorage dependencies, remove global
+      global: true,
     };
   }
 }

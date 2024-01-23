@@ -8,3 +8,4 @@ jest.config.js
 tslint.json
 *.tgz
 docs
+.env*

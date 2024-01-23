@@ -1,27 +1,26 @@
 import { Security } from '../../src';
 import { Test } from '@nestjs/testing';
-import { DiscoveryModule, NestApplication } from '@nestjs/core';
-import { Controller, Get, HttpStatus, Type } from '@nestjs/common';
-import { AppModule, TestSecurityProfile, TestSecurityProfile2 } from '../fixtures';
+import { NestApplication } from '@nestjs/core';
+import { Controller, Get, HttpStatus } from '@nestjs/common';
+import { AppModule, NaiveBlackListProfile, EnvBlackListProfile } from '../fixtures';
 import * as request from 'supertest';
-import { ConfigModule } from '@nestjs/config';
 
 @Controller('test1')
 class TestController1 {
   @Get('single')
-  @Security.AllowProfiles(TestSecurityProfile)
+  @Security.CheckIpBlackList(NaiveBlackListProfile)
   allowSingleProfile() {
     return 'test';
   }
 
   @Get('multiple')
-  @Security.AllowProfiles(TestSecurityProfile, TestSecurityProfile2)
+  @Security.CheckIpBlackList(NaiveBlackListProfile, EnvBlackListProfile)
   allowMultipleProfiles() {
     return 'test';
   }
 
   @Get('no-profile')
-  @Security.AllowProfiles()
+  @Security.CheckIpBlackList()
   noProfile() {
     return 'test';
   }
@@ -36,11 +35,9 @@ describe('IPCheckGuard', () => {
   let app: NestApplication;
 
   beforeAll(async () => {
-    const profileList: Type<unknown>[] = [TestSecurityProfile, TestSecurityProfile2];
     const module = await Test.createTestingModule({
-      imports: [AppModule, DiscoveryModule, ConfigModule],
+      imports: [AppModule],
       controllers: [TestController1],
-      providers: [...profileList],
     }).compile();
 
     app = module.createNestApplication();
@@ -57,7 +54,7 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return true when a request comes in with a single profile applied and from an allowed IP address.', async () => {
-      const requestIPAddress = new TestSecurityProfile().getIPWhiteList();
+      const requestIPAddress = ['192.168.2.1', '192.168.2.2', '192.168.2.3'];
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())
@@ -68,7 +65,7 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return true when a request comes in with multiple profiles applied and from an allowed IP address.', async () => {
-      const requestIPAddress = ['127.0.0.1', '192.168.0.1', '192.168.0.2', '172.16.0.0'];
+      const requestIPAddress = ['192.168.2.1', '192.168.2.2', '192.168.2.3'];
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())
@@ -79,7 +76,7 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return false when a request comes in with a single profile applied and not from an IP address.', async () => {
-      const requestIPAddress = new TestSecurityProfile().getIPWhiteList().map((ip) => `${ip}1`);
+      const requestIPAddress = [...new NaiveBlackListProfile().getIpBlackList()];
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())
@@ -90,7 +87,11 @@ describe('IPCheckGuard', () => {
     });
 
     it('should return false when a request comes in with a multiple profile applied and not from an IP address.', async () => {
-      const requestIPAddress = ['127.0.0.3'];
+      const envProfile = app.get(EnvBlackListProfile);
+      const requestIPAddress = [
+        ...new NaiveBlackListProfile().getIpBlackList(),
+        ...envProfile.getIpBlackList(),
+      ];
 
       for await (const ip of requestIPAddress) {
         await request(app.getHttpServer())
