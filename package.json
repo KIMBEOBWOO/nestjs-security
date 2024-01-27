@@ -17,8 +17,17 @@
     "test": "jest --detectOpenHandles"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=14"
   },
+  "keywords": [
+    "nestjs",
+    "typescript",
+    "decorator",
+    "security",
+    "ip guard",
+    "csrf",
+    "rate limit"
+  ],
   "peerDependencies": {
     "@nestjs/common": "^8 || ^9 || ^10",
     "@nestjs/core": "^8 || ^9 || ^10",
