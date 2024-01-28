@@ -1,11 +1,7 @@
 [![npm version](https://badge.fury.io/js/angular2-expandable-list.svg)](https://badge.fury.io/js/angular2-expandable-list)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-# Project Name
-
-> Nestjs Security
-
-<br/>
+# Nestjs Security
 
 ## Table of contents
 
@@ -13,7 +9,7 @@
 
 <!-- code_chunk_output -->
 
-- [Project Name](#project-name)
+- [Nestjs Security](#nestjs-security)
   - [Table of contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Getting Started](#getting-started)
@@ -27,9 +23,11 @@
     - [IP White List](#ip-white-list)
       - [Middleware Level](#middleware-level)
       - [Controller or API Method Level](#controller-or-api-method-level)
+      - [Validation Failure](#validation-failure)
     - [IP Black List](#ip-black-list)
       - [Middleware Level](#middleware-level-1)
       - [Controller or API Method Level](#controller-or-api-method-level-1)
+      - [Validation Failure](#validation-failure-1)
     - [CSRF Protection](#csrf-protection)
     - [Rate Limiting](#rate-limiting)
   - [Contributing](#contributing)
@@ -44,9 +42,7 @@
 ## Prerequisites
 
 This project requires NodeJS (version 16 or later) and NPM.
-[Node](http://nodejs.org/) and [NPM](https://npmjs.org/) are really easy to install.
-To make sure you have them available on your machine,
-try running the following command.
+[Node](http://nodejs.org/) and [NPM](https://npmjs.org/) are very easy to install. To make sure you have them available on your machine, try running the following command.
 
 ```sh
 $ npm -v && node -v
@@ -60,13 +56,15 @@ v16.1.0
 
 The package was developed under the theme of **"security"** because it wanted to provide a series of functions in one package. Now, we want to provide security features that can be easily applied at the API level, including CSRF protection provided by the deprecated [express/csrf](https://github.com/expressjs/csurf#csurf) package. The core concept is to provide various security functions to be applicable independently of the server infrastructure configuration at the **middleware level, the class level, and the method level** without modifying the business logic.
 
+![Alt text](./docs/get-start.png)
+
+By default, you can use the security features that the library provides by linking them to a registered security profile.
+
 <br/>
 
 ## Installation
 
 <!-- **BEFORE YOU INSTALL:** please read the [prerequisites](#prerequisites) -->
-
-Easy to install through the package manager.
 
 ```sh
 $ npm install nestjs-security
@@ -196,6 +194,8 @@ The IP Black list profile is a class with the `IpBlackList ValidationSecurityPro
 
 ### IP White List
 
+![Alt text](./docs/ip-white-list.png)
+
 IP White List is a feature used to allow requests that come to a specific IP address only.
 
 - If you want to restrict IP-based access to resources provided by a particular controller
@@ -257,7 +257,25 @@ If you want to apply a detailed IP White List check on an **API endpoint or cont
 
 <br/>
 
+#### Validation Failure
+
+The IP Whitelist returns an error if all applied IpWhiteListProfiles do not pass regardless of where the middleware, class/method level is applied, which means **"Request for an IP address that is not allowed."** The error object is organized as follows, which can be found here.
+
+> NOTE: White List successfully handles at least one security profile if it is applied. _(at-least-one)_
+
+```typescript
+export class ForbiddenIpAddressError extends SecurityModuleError {
+  constructor(profileName: string, ipAddress: string) {
+    super(`Forbidden IP address: ${ipAddress}, profile name: ${profileName}`, HttpStatus.FORBIDDEN);
+  }
+}
+```
+
+<br/>
+
 ### IP Black List
+
+![Alt text](./docs/ip-black-list.png)
 
 Use the IP Black List to **reject requests** that come to a **specific IP address**, which is appropriate for security rules that allow you to reject certain IPs but allow all other requests.
 
@@ -322,6 +340,22 @@ If you want to apply a detailed IP White List check on an **API endpoint or cont
 
 <br/>
 
+#### Validation Failure
+
+The IP BlackList returns an error if one of applied IpBlackListSecurityProfile do not pass regardless of where the middleware, class/method level is applied, which means **"Request for an IP address that is denied."** The error object is organized as follows, which can be found here.
+
+> NOTE: Black List successfully handles all of security profile if it is applied. _(for-every)_
+
+```typescript
+export class ForbiddenIpAddressError extends SecurityModuleError {
+  constructor(profileName: string, ipAddress: string) {
+    super(`Forbidden IP address: ${ipAddress}, profile name: ${profileName}`, HttpStatus.FORBIDDEN);
+  }
+}
+```
+
+<br/>
+
 ### CSRF Protection
 
 > NOTE : It will be added to the next version.
@@ -336,7 +370,7 @@ If you want to apply a detailed IP White List check on an **API endpoint or cont
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+Any additional feature suggestions or error reports and PRs for correcting existing features are **all welcome**!
 
 1.  Fork it!
 2.  Create your feature branch: `git checkout -b my-new-feature`
