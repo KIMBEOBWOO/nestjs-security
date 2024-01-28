@@ -82,7 +82,10 @@ describe('IPCheckGuard', () => {
         await request(app.getHttpServer())
           .get('/test1/single')
           .set('X-Forwarded-For', ip)
-          .expect(HttpStatus.FORBIDDEN);
+          .expect({
+            statusCode: HttpStatus.FORBIDDEN,
+            message: `Forbidden IP address: ${ip}, profile name: NaiveBlackListProfile`,
+          });
       }
     });
 
@@ -97,7 +100,10 @@ describe('IPCheckGuard', () => {
         await request(app.getHttpServer())
           .get('/test1/multiple')
           .set('X-Forwarded-For', ip)
-          .expect(HttpStatus.FORBIDDEN);
+          .expect({
+            statusCode: HttpStatus.FORBIDDEN,
+            message: `Forbidden IP address: ${ip}, profile name: NaiveBlackListProfile, EnvBlackListProfile`,
+          });
       }
     });
   });

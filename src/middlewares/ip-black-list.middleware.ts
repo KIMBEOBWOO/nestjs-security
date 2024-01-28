@@ -1,8 +1,11 @@
 import { ForbiddenException, Injectable, NestMiddleware, Type } from '@nestjs/common';
 import { getClientIp } from '@supercharge/request-ip';
 import { ProfileOperator } from '../common';
-import { IpBlackListValidationSecurityProfile } from '../interfaces';
-import { ProfileStorage, ProfileValidator } from '../providers';
+import {
+  IpBlackListValidationSecurityProfile,
+  ProfileStorage,
+  ProfileValidator,
+} from '../providers';
 
 type ProfileInputType = Type<IpBlackListValidationSecurityProfile>[];
 

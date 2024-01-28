@@ -1,11 +1,11 @@
 import { applyDecorators, Injectable, Type, UseGuards } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { IpBlackListGuard, IpWhiteListGuard } from '../guards';
+import { SecurityProfile } from '../interfaces';
 import {
-  IpBlackListValidationSecurityProfile,
   IpWhiteListValidationSecurityProfile,
-  SecurityProfile,
-} from '../interfaces';
+  IpBlackListValidationSecurityProfile,
+} from '../providers';
 
 type ProfileInputType<T = SecurityProfile> = Type<T>[];
 

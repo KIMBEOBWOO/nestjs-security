@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ProfileOperator, ProfileOperatorType } from '../common';
+import { InvalidProfileOperatorError } from '../exceptions';
 import { SecurityProfile } from '../interfaces';
 
 @Injectable()
@@ -24,7 +25,7 @@ export class ProfileValidator {
         return validateResults.every((result) => result === true);
 
       default:
-        throw new Error(`Not Supported Operator Type ${operator}`);
+        throw new InvalidProfileOperatorError(operator);
     }
   }
 }
