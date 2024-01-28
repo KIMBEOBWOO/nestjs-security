@@ -1,6 +1,7 @@
-import { ForbiddenException, Injectable, NestMiddleware, Type } from '@nestjs/common';
+import { Injectable, NestMiddleware, Type } from '@nestjs/common';
 import { getClientIp } from '@supercharge/request-ip';
 import { ProfileOperator } from '../common';
+import { ForbiddenIpAddressError, MissingIpAddressInRequestError } from '../exceptions';
 import {
   IpBlackListValidationSecurityProfile,
   ProfileStorage,
@@ -20,11 +21,11 @@ export class IpBlackListMiddleware implements NestMiddleware {
   constructor(private readonly profileStorage: ProfileStorage) {}
 
   async use(request: Request, _: Response, next: (error?: unknown) => void) {
-    const clientIP = getClientIp(request);
+    const ipAddress = getClientIp(request);
 
     // If there is no ipWhiteList, not allow all IP addresses.
-    if (!clientIP) {
-      throw new ForbiddenException();
+    if (!ipAddress) {
+      throw new MissingIpAddressInRequestError();
     }
 
     const requiredProfileNames = this.getRequiredProfileNames();
@@ -38,14 +39,14 @@ export class IpBlackListMiddleware implements NestMiddleware {
     const isValid = await ProfileValidator.applyProfiles(
       requiredProfiles,
       ProfileOperator.FOR_EVERY,
-      request,
+      ipAddress,
     );
 
     if (isValid) {
       next();
       return;
     } else {
-      throw new ForbiddenException();
+      throw new ForbiddenIpAddressError(requiredProfileNames.join(', '), ipAddress);
     }
   }
 
