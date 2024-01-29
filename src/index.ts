@@ -5,3 +5,4 @@ export * from './middlewares';
 export * from './security.module';
 export * from './providers';
 export * from './common';
+export * from './exceptions';
