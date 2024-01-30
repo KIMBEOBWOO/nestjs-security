@@ -32,6 +32,24 @@ export class NaiveBlackListProfile extends IpBlackListValidationSecurityProfile 
 }
 
 @SecurityProfileSchema()
+export class CIDRBlackListProfile extends IpBlackListValidationSecurityProfile {
+  getIpBlackList(): string[] {
+    return [
+      /**
+       * - start  : 192.168.16.0
+       * - end    : 192.168.31.255
+       */
+      '192.168.16.0/20',
+      /**
+       * - start  : 192.168.0.5
+       * - end    : 192.168.0.5
+       */
+      '192.168.0.5/32',
+    ];
+  }
+}
+
+@SecurityProfileSchema()
 export class EnvBlackListProfile extends IpBlackListValidationSecurityProfile {
   constructor(private readonly configService: ConfigService<any, true>) {
     super();
