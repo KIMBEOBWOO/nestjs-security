@@ -2,7 +2,12 @@ import { IpWhiteListMiddleware } from '../../src';
 import { Test } from '@nestjs/testing';
 import { NestApplication } from '@nestjs/core';
 import { Controller, Get, HttpStatus, MiddlewareConsumer, Module } from '@nestjs/common';
-import { AppModule, NaiveWhiteListProfile, EnvWhiteListProfile } from '../fixtures';
+import {
+  AppModule,
+  NaiveWhiteListProfile,
+  EnvWhiteListProfile,
+  CIDRWhiteListProfile,
+} from '../fixtures';
 import * as request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 
@@ -24,6 +29,14 @@ class MultipleProfileController {
 
 @Controller('test')
 class NoProfileController {
+  @Get()
+  test() {
+    return true;
+  }
+}
+
+@Controller('test')
+class CIDRController {
   @Get()
   test() {
     return true;
@@ -67,6 +80,20 @@ const testCases = [
     controller: MultipleProfileController,
     profileList: [NaiveWhiteListProfile, EnvWhiteListProfile],
     requestIPs: ['172.217.168.142'],
+    expectedStatus: failHttpStatus,
+  },
+  // CIDR profile, deny ip addresses not in the profile.
+  {
+    controller: CIDRController,
+    profileList: [CIDRWhiteListProfile],
+    requestIPs: ['192.168.0.5', '192.168.16.0', '192.168.31.255'],
+    expectedStatus: successHttpStatus,
+  },
+  // CIDR profile, allow ip addresses in the profile.
+  {
+    controller: CIDRController,
+    profileList: [CIDRWhiteListProfile],
+    requestIPs: ['192.168.0.4', '192.168.0.6', '192.168.32.0', '192.168.15.255'],
     expectedStatus: failHttpStatus,
   },
 ];
