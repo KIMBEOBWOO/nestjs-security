@@ -156,11 +156,13 @@ describe('IPCheckGuard', () => {
       },
     ];
 
-    it.only.each(cidrTestCase)('CIDR : $case', ({ requestIP, expectedStatus }) => {
-      return request(app.getHttpServer())
-        .get('/test1/multiple')
-        .set('X-Forwarded-For', requestIP)
-        .expect(expectedStatus);
+    describe.each(cidrTestCase)('CIDR', ({ case: Case, requestIP, expectedStatus }) => {
+      it(Case, () => {
+        return request(app.getHttpServer())
+          .get('/test1/cidr')
+          .set('X-Forwarded-For', requestIP)
+          .expect(expectedStatus);
+      });
     });
   });
 });

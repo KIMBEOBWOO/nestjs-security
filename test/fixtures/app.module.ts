@@ -8,6 +8,7 @@ import {
   NaiveWhiteListProfile,
   EnvBlackListProfile,
   EnvWhiteListProfile,
+  CIDRBlackListProfile,
 } from './security-profile';
 
 @Module({
@@ -24,6 +25,7 @@ import {
     NaiveWhiteListProfile,
     EnvBlackListProfile,
     EnvWhiteListProfile,
+    CIDRBlackListProfile,
   ],
 })
 export class AppModule {}

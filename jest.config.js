@@ -1,6 +1,9 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  transform: {
+    '^.+\\.(ts)$': 'ts-jest',
+  },
   collectCoverageFrom: [
     '**/*.(t|j)s',
     '!**/node_modules/**',
@@ -11,11 +14,4 @@ module.exports = {
   coverageDirectory: './coverage',
   coverageReporters: ['json', 'html'],
   testEnvironment: 'node',
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        target: 'ES6',
-      },
-    },
-  },
 };
