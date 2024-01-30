@@ -25,9 +25,45 @@ export class EnvWhiteListProfile extends IpWhiteListValidationSecurityProfile {
 }
 
 @SecurityProfileSchema()
+export class CIDRWhiteListProfile extends IpWhiteListValidationSecurityProfile {
+  getIpWhiteList(): string[] {
+    return [
+      /**
+       * - start  : 192.168.16.0
+       * - end    : 192.168.31.255
+       */
+      '192.168.16.0/20',
+      /**
+       * - start  : 192.168.0.5
+       * - end    : 192.168.0.5
+       */
+      '192.168.0.5/32',
+    ];
+  }
+}
+
+@SecurityProfileSchema()
 export class NaiveBlackListProfile extends IpBlackListValidationSecurityProfile {
   getIpBlackList(): string[] {
     return ['192.168.1.3', '192.168.1.4'];
+  }
+}
+
+@SecurityProfileSchema()
+export class CIDRBlackListProfile extends IpBlackListValidationSecurityProfile {
+  getIpBlackList(): string[] {
+    return [
+      /**
+       * - start  : 192.168.16.0
+       * - end    : 192.168.31.255
+       */
+      '192.168.16.0/20',
+      /**
+       * - start  : 192.168.0.5
+       * - end    : 192.168.0.5
+       */
+      '192.168.0.5/32',
+    ];
   }
 }
 

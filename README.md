@@ -31,6 +31,8 @@
     - [CSRF Protection](#csrf-protection)
     - [Rate Limiting](#rate-limiting)
   - [Contributing](#contributing)
+  - [Error Reports](#error-reports)
+    - [Only IPv4](#only-ipv4)
   - [Versioning](#versioning)
   - [Authors](#authors)
   - [License](#license)
@@ -49,6 +51,8 @@ $ npm -v && node -v
 6.4.1
 v16.1.0
 ```
+
+If you've encountered an error, please [read it here](#error-reports)
 
 <br/>
 
@@ -125,6 +129,8 @@ The features offered in the current package are the [IP White List](#ip-white-li
 
 > **Only the IP addresses in the whitelist are allowed**.
 
+> **Each ip address string supports the [CIDR](https://ko.wikipedia.org/wiki/CIDR) block notation method.**
+
 ```typescript
 import { ConfigService } from '@nestjs/config';
 import {
@@ -137,7 +143,19 @@ import {
 export class NaiveWhiteListProfile extends IpWhiteListValidationSecurityProfile {
   getIpWhiteList(): string[] {
     // return ip's
-    return ['127.0.0.1', '192.168.0.1', '192.168.0.2'];
+    return [
+      '127.0.0.1',
+      /**
+       * - start  : 192.168.16.0
+       * - end    : 192.168.31.255
+       */
+      '192.168.16.0/20',
+      /**
+       * - start  : 192.168.0.5
+       * - end    : 192.168.0.5
+       */
+      '192.168.0.5/32',
+    ];
   }
 }
 ```
@@ -165,11 +183,25 @@ The IP white list profile inherits the `IpWhiteListValidationSecurityProfile` an
 
 > **Deny all IP addresses in the black list.**
 
+> **Each ip address string supports the [CIDR](https://ko.wikipedia.org/wiki/CIDR) block notation method.**
+
 ```typescript
 @SecurityProfileSchema()
 export class NaiveBlackListProfile extends IpBlackListValidationSecurityProfile {
   getIpBlackList(): string[] {
-    return ['192.168.1.3', '192.168.1.4'];
+    return [
+      '127.0.0.1',
+      /**
+       * - start  : 192.168.16.0
+       * - end    : 192.168.31.255
+       */
+      '192.168.16.0/20',
+      /**
+       * - start  : 192.168.0.5
+       * - end    : 192.168.0.5
+       */
+      '192.168.0.5/32',
+    ];
   }
 }
 ```
@@ -378,6 +410,19 @@ Any additional feature suggestions or error reports and PRs for correcting exist
 4.  Commit your changes: `git commit -am 'Add some feature'`
 5.  Push to the branch: `git push origin my-new-feature`
 6.  Submit a pull request :sunglasses:
+
+<br/>
+
+## Error Reports
+
+### Only IPv4
+
+Currently, the ipWhiteList and ipBlackList features support only ipv4 address formats. We will provide future versions to automatically distinguish between ipv6 and ipv4 address formats. Therefore, for nestjs systems that do not require an ipv6 address scheme, setting it as [below](<https://nodejs.org/dist/latest-v4.x/docs/api/http.html#http_server_listen_port_hostname_backlog_callback:~:text=listen(path).-,server.listen(%5Bport%5D%5B%2C%20hostname%5D%5B%2C%20backlog%5D%5B%2C%20callback%5D),-%23>) can resolve most incorrect behavior.
+
+```typescript
+// main.ts
+await app.listen(3000, '0.0.0.0');
+```
 
 <br/>
 

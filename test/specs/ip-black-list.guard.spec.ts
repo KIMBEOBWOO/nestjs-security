@@ -2,7 +2,12 @@ import { Security } from '../../src';
 import { Test } from '@nestjs/testing';
 import { NestApplication } from '@nestjs/core';
 import { Controller, Get, HttpStatus } from '@nestjs/common';
-import { AppModule, NaiveBlackListProfile, EnvBlackListProfile } from '../fixtures';
+import {
+  AppModule,
+  NaiveBlackListProfile,
+  EnvBlackListProfile,
+  CIDRBlackListProfile,
+} from '../fixtures';
 import * as request from 'supertest';
 
 @Controller('test1')
@@ -27,6 +32,12 @@ class TestController1 {
 
   @Get('no-decorator')
   noAllowDecorators() {
+    return 'test';
+  }
+
+  @Get('cidr')
+  @Security.CheckIpBlackList(CIDRBlackListProfile)
+  cidrBlackList() {
     return 'test';
   }
 }
@@ -105,6 +116,53 @@ describe('IPCheckGuard', () => {
             message: `Forbidden IP address: ${ip}, profile name: NaiveBlackListProfile, EnvBlackListProfile`,
           });
       }
+    });
+
+    const cidrTestCase = [
+      {
+        case: '/32 deny only specific IP address',
+        requestIP: '192.168.0.5',
+        expectedStatus: HttpStatus.FORBIDDEN,
+      },
+      {
+        case: '/32 allow other IP addresses (start boundary)',
+        requestIP: '192.168.0.4',
+        expectedStatus: HttpStatus.OK,
+      },
+      {
+        case: '/32 allow other IP addresses (end boundary)',
+        requestIP: '192.168.0.6',
+        expectedStatus: HttpStatus.OK,
+      },
+      {
+        case: '/20 deny IP addresses included in 255.255.240.0 (start boudary)',
+        requestIP: '192.168.16.0',
+        expectedStatus: HttpStatus.FORBIDDEN,
+      },
+      {
+        case: '/20 deny IP addresses included in 255.255.240.0 (end boudary)',
+        requestIP: '192.168.31.255',
+        expectedStatus: HttpStatus.FORBIDDEN,
+      },
+      {
+        case: '/20 allow IP addresses not included in 255.255.240.0 (start boudary)',
+        requestIP: '192.168.32.0',
+        expectedStatus: HttpStatus.OK,
+      },
+      {
+        case: '/20 allow IP addresses not included in 255.255.240.0 (end boudary)',
+        requestIP: '192.168.15.255',
+        expectedStatus: HttpStatus.OK,
+      },
+    ];
+
+    describe.each(cidrTestCase)('CIDR', ({ case: Case, requestIP, expectedStatus }) => {
+      it(Case, () => {
+        return request(app.getHttpServer())
+          .get('/test1/cidr')
+          .set('X-Forwarded-For', requestIP)
+          .expect(expectedStatus);
+      });
     });
   });
 });

@@ -8,6 +8,8 @@ import {
   NaiveWhiteListProfile,
   EnvBlackListProfile,
   EnvWhiteListProfile,
+  CIDRBlackListProfile,
+  CIDRWhiteListProfile,
 } from './security-profile';
 
 @Module({
@@ -24,10 +26,8 @@ import {
     NaiveWhiteListProfile,
     EnvBlackListProfile,
     EnvWhiteListProfile,
+    CIDRBlackListProfile,
+    CIDRWhiteListProfile,
   ],
 })
 export class AppModule {}
-
-// ip 주소 화이트 리스트, 블랙리스트
-// csrf 공격 방어
-// ddos 방어 -> 트래픽 제한 거는거
