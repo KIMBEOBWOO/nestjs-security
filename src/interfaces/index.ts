@@ -19,6 +19,22 @@ export interface IpBlackListValidationSchema {
   getIpBlackList(): string[] | Promise<string[]>;
 }
 
-export interface SignedCSRFTokenValidationSchema {
-  getSessionID(request: Request): string | Promise<string>;
+export interface CSRFTokenValidationSchema {
+  /**
+   * generate CSRF token
+   */
+  generateCSRFToken(...param: unknown[]): string | Promise<string>;
+}
+
+/**
+ * check if object is CSRFTokenValidationSchema
+ * @param obj object to check
+ * @returns true if object is CSRFTokenValidationSchema
+ */
+export const isCSRFTokenValidationSchema = (obj: any): obj is CSRFTokenValidationSchema => {
+  return obj.generateCSRFToken !== undefined;
+};
+
+export interface SignedCSRFTokenValidationSchema extends CSRFTokenValidationSchema {
+  generateCSRFToken(request: Request): string | Promise<string>;
 }

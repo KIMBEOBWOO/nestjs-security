@@ -8,7 +8,7 @@ import {
   SignedCSRFTokenValidationSchema,
 } from '../interfaces';
 import { isIpV4 } from '../utils';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 export abstract class IpWhiteListValidationSecurityProfile
   implements SecurityProfile, IpWhiteListValidationSchema
@@ -65,8 +65,7 @@ export abstract class SignedCSRFTokenSecurityProfile
 {
   async validate(request: Request) {
     const csrfToken = (request.headers as any)['x-csrf-token'] as string;
-    const sessionID = await this.getSessionID(request);
-    const expectedCsrfToken = await this.generateCSRFToken(sessionID);
+    const expectedCsrfToken = await this.generateCSRFToken(request);
 
     // if csrfToken is not equal to expectedCsrfToken, return false.
     if (
@@ -81,10 +80,9 @@ export abstract class SignedCSRFTokenSecurityProfile
     return true;
   }
 
-  abstract getSessionID(request: Request): string | Promise<string>;
-  abstract getSecretKey(): string | Promise<string>;
+  async generateCSRFToken(request: Request) {
+    const sessionID = await this.getSessionID(request);
 
-  private async generateCSRFToken(sessionID: string) {
     const timestamp = Date.now(); // timestamp
     const nonce = Math.random().toString(36).substring(2, 15); // nonce for recycle attack
     const message = `${sessionID}!${timestamp}!${nonce}`; // message (csrf payload)
@@ -94,6 +92,9 @@ export abstract class SignedCSRFTokenSecurityProfile
 
     return `${hmac}.${message}`;
   }
+
+  abstract getSessionID(request: Request): string | Promise<string>;
+  abstract getSecretKey(): string | Promise<string>;
 
   private checkFormat(csrfToken: string) {
     const [hmac, message] = csrfToken.split('.');

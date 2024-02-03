@@ -3,6 +3,7 @@ import {
   IpBlackListValidationSecurityProfile,
   IpWhiteListValidationSecurityProfile,
   SecurityProfileSchema,
+  SignedCSRFTokenSecurityProfile,
 } from '../../src';
 
 @SecurityProfileSchema()
@@ -76,5 +77,16 @@ export class EnvBlackListProfile extends IpBlackListValidationSecurityProfile {
   getIpBlackList(): string[] {
     const ipBlackList = this.configService.get<string>('testIPaddress');
     return [ipBlackList];
+  }
+}
+
+@SecurityProfileSchema()
+export class HmacCSRFTokenProfile extends SignedCSRFTokenSecurityProfile {
+  getSessionID(request: Request): string | Promise<string> {
+    return (request as any).user.id;
+  }
+
+  getSecretKey(): string | Promise<string> {
+    return 'secretKey';
   }
 }
