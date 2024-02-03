@@ -5,8 +5,10 @@ import {
   SecurityProfile,
   IpWhiteListValidationSchema,
   IpBlackListValidationSchema,
+  SignedCSRFTokenValidationSchema,
 } from '../interfaces';
 import { isIpV4 } from '../utils';
+import crypto from 'crypto';
 
 export abstract class IpWhiteListValidationSecurityProfile
   implements SecurityProfile, IpWhiteListValidationSchema
@@ -56,4 +58,50 @@ export abstract class IpBlackListValidationSecurityProfile
   }
 
   abstract getIpBlackList(): string[] | Promise<string[]>;
+}
+
+export abstract class SignedCSRFTokenSecurityProfile
+  implements SecurityProfile, SignedCSRFTokenValidationSchema
+{
+  async validate(request: Request) {
+    const csrfToken = (request.headers as any)['x-csrf-token'] as string;
+    const sessionID = await this.getSessionID(request);
+    const expectedCsrfToken = await this.generateCSRFToken(sessionID);
+
+    // if csrfToken is not equal to expectedCsrfToken, return false.
+    if (
+      typeof csrfToken !== 'string' ||
+      csrfToken.length < 10 ||
+      this.checkFormat(csrfToken) ||
+      csrfToken !== expectedCsrfToken
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  abstract getSessionID(request: Request): string | Promise<string>;
+  abstract getSecretKey(): string | Promise<string>;
+
+  private async generateCSRFToken(sessionID: string) {
+    const timestamp = Date.now(); // timestamp
+    const nonce = Math.random().toString(36).substring(2, 15); // nonce for recycle attack
+    const message = `${sessionID}!${timestamp}!${nonce}`; // message (csrf payload)
+
+    const secretKey = await this.getSecretKey(); // secret key for hmac
+    const hmac = crypto.createHmac('sha256', secretKey).update(message).digest('hex');
+
+    return `${hmac}.${message}`;
+  }
+
+  private checkFormat(csrfToken: string) {
+    const [hmac, message] = csrfToken.split('.');
+    if (!hmac || !message) return false;
+
+    const [sessionID, timestamp, nonce] = message.split('!');
+    if (!sessionID || !timestamp || !nonce) return false;
+
+    return true;
+  }
 }

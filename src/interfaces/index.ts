@@ -18,3 +18,7 @@ export interface IpBlackListValidationSchema {
    */
   getIpBlackList(): string[] | Promise<string[]>;
 }
+
+export interface SignedCSRFTokenValidationSchema {
+  getSessionID(request: Request): string | Promise<string>;
+}
