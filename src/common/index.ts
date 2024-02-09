@@ -4,3 +4,5 @@ export const ProfileOperator = {
 } as const;
 
 export type ProfileOperatorType = (typeof ProfileOperator)[keyof typeof ProfileOperator];
+
+export const CSRF_TOKEN_HEADER = 'x-csrf-token';

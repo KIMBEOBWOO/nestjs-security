@@ -7,3 +7,4 @@ export * from './providers';
 export * from './common';
 export * from './exceptions';
 export * from './utils';
+export * from './interceptors';
