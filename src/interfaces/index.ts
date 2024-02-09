@@ -40,10 +40,7 @@ export const isCSRFTokenValidationSchema = (obj: any): obj is CSRFTokenValidatio
   return obj.generateCSRFToken !== undefined;
 };
 
-export type SignedCSRFTokenMessageType = Request;
-export type SignedCSRFTokenType = string;
-
 export interface SignedCSRFTokenValidationSchema extends CSRFTokenValidationSchema {
-  generateCSRFToken(message: SignedCSRFTokenMessageType): Promise<SignedCSRFTokenType>;
-  // validateCSRFToken(token: SignedCSRFTokenType): Promise<boolean>;
+  generateCSRFToken(data: any): Promise<string>;
+  validateCSRFToken(request: Request): Promise<boolean>;
 }

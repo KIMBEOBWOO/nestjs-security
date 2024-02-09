@@ -5,10 +5,11 @@ import { AllowProfiles, CSRFTokenPostInterceptor, CSRF_TOKEN_HEADER, Security } 
 import {
   AppModule,
   EnvBlackListProfile,
-  EnvWhiteListProfile,
-  HmacCSRFTokenProfile,
+  JwtCSRFTokenProfile,
+  SessionCSRFTokenProfile,
 } from '../fixtures';
 import * as request from 'supertest';
+import { sign } from 'jsonwebtoken';
 
 /**
  * response csrf token header name
@@ -45,31 +46,39 @@ class TestReqUserGuard {
   }
 }
 
+const accessToken = sign({ id: 12345 }, 'secret', {
+  jwtid: '1234',
+});
+
+const testResponse = {
+  accessToken: accessToken,
+};
+
 @Controller()
 export class TestController {
   @Post('no-profile')
   @UseInterceptors(TestInterceptor)
   noProfile() {
-    return 'test';
+    return testResponse;
   }
 
   @Post('multiple')
-  @AllowProfiles(EnvBlackListProfile, EnvWhiteListProfile)
+  @AllowProfiles(JwtCSRFTokenProfile, SessionCSRFTokenProfile)
   @UseInterceptors(TestInterceptor)
   allowMultipleProfiles() {
-    return 'test';
+    return testResponse;
   }
 
   @Post('not-allowed-profile')
   @Security.GenSignedCSRFToken(EnvBlackListProfile as any)
   notAllowedProfile() {
-    return 'test';
+    return testResponse;
   }
 
   @Post('allowed-profile')
-  @Security.GenSignedCSRFToken(HmacCSRFTokenProfile)
-  allowedProfile() {
-    return 'test';
+  @Security.GenSignedCSRFToken(JwtCSRFTokenProfile)
+  allowedProfileReturnBody() {
+    return testResponse;
   }
 }
 
@@ -92,11 +101,10 @@ describe('CSRFTokenPostInterceptor', () => {
     await app.init();
   });
 
-  it('If 0 security profiles are registered, 500 errors must be returned.', () => {
+  it('If no security profiles are registered, 500 errors must be returned.', () => {
     return request(app.getHttpServer()).post('/no-profile').expect({
       statusCode: 500,
       message: 'CSRFTokenPostInterceptor requires exactly one profile ',
-      error: 'Internal Server Error',
     });
   });
 
@@ -104,7 +112,6 @@ describe('CSRFTokenPostInterceptor', () => {
     return request(app.getHttpServer()).post('/multiple').expect({
       statusCode: 500,
       message: 'CSRFTokenPostInterceptor requires exactly one profile ',
-      error: 'Internal Server Error',
     });
   });
 
@@ -113,7 +120,6 @@ describe('CSRFTokenPostInterceptor', () => {
       statusCode: 500,
       message:
         'Not allowed profile(EnvBlackListProfile). CSRFTokenPostInterceptor requires only CSRFTokenValidationSchema',
-      error: 'Internal Server Error',
     });
   });
 

@@ -20,6 +20,10 @@
       - [(2) regist security profile](#2-regist-security-profile)
         - [IP white list profile](#ip-white-list-profile)
         - [IP Black list profile](#ip-black-list-profile)
+        - [Signed CSRF Token Profile](#signed-csrf-token-profile)
+          - [getSessionIDforCreate](#getsessionidforcreate)
+          - [getSessionIDforValidate](#getsessionidforvalidate)
+          - [getSecretKey](#getsecretkey)
     - [IP White List](#ip-white-list)
       - [Middleware Level](#middleware-level)
       - [Controller or API Method Level](#controller-or-api-method-level)
@@ -29,6 +33,9 @@
       - [Controller or API Method Level](#controller-or-api-method-level-1)
       - [Validation Failure](#validation-failure-1)
     - [CSRF Protection](#csrf-protection)
+      - [Controller or API Method Level](#controller-or-api-method-level-2)
+        - [CSRF Token Generate](#csrf-token-generate)
+        - [CSRF Token Validate (Check)](#csrf-token-validate-check)
     - [Rate Limiting](#rate-limiting)
   - [Contributing](#contributing)
   - [Error Reports](#error-reports)
@@ -115,6 +122,7 @@ The package provides security capabilities based on a provider called **"Securit
       NaiveWhiteListProfile,
       EnvBlackListProfile,
       EnvWhiteListProfile,
+      JwtSignedCSRFTokenProfile,
     ],
   })
   export class AppModule {}
@@ -221,6 +229,88 @@ export class EnvBlackListProfile extends IpBlackListValidationSecurityProfile {
 ```
 
 The IP Black list profile is a class with the `IpBlackList ValidationSecurityProfileSchema` decorator. `getIpBlackList` should be implemented to return the appropriate IP address arrangement. The `IpBlackListGuard` or `IpBlackListMiddleware` that uses that profile is designed to reject requests if any of all IpBlackList in a given profile matches.
+
+<br/>
+
+##### Signed CSRF Token Profile
+
+> **for Generate CSRF Token and Validate CSRF Token in request**
+
+```typescript
+@SecurityProfileSchema()
+export class JwtCSRFTokenProfile extends SignedCSRFTokenSecurityProfile {
+  getSessionIDforCreate(data: any): string | Promise<string> {
+    const accessToken = data?.accessToken;
+    const decoded = decode(accessToken) as any;
+    return decoded?.jti;
+  }
+
+  getSessionIDforValidate(request: Request): string | Promise<string> {
+    const accessToken = (request.headers as any).authorization;
+    const decoded = decode(accessToken) as any;
+    return decoded?.jti;
+  }
+
+  getSecretKey(): string | Promise<string> {
+    return 'secretKey';
+  }
+}
+```
+
+You must implement a method that contradicts the secret value required to sign the csrf token. For security purposes, the secret must be imported from configService, etc.
+
+###### getSessionIDforCreate
+
+This method is used to automatically include signed CSRFs in the response header by applying the `@Security.GenSignedCSRFToken` decorator. You must implement that method to return a unique value per authentication session.
+The **"unique value per session"** is included in the CSRF token to be generated and signed. The CSRF token does not have a separate expiration period and must be naturally incorporated into the life cycle of the session. The example above is an example of returning the JWT token to the Response Body upon successful login.
+
+```typescript
+// auth.controller.ts
+@Controller('auth')
+export class AuthController {
+  @Post('login')
+  @Security.GenSignedCSRFToken(JwtCSRFTokenProfile)
+  login() {
+    return {
+      accessToken: <<user jwt access token>>,
+      ...
+    };
+  }
+}
+```
+
+`@Security.GenSignedCSRFToken` calls the getSessionIDforCreate implemented in the JwtCSRFTokenProfile to get a unique value per session to create a CSRF token and include it in the **response header**.
+
+###### getSessionIDforValidate
+
+This method is used to compare the authentication information included when signing a CSRF token on a controller or method with `@Security.CheckSignedCSRFToken()` and the authentication information included in the current request.
+
+```typescript
+// post.controller.ts
+@Controller('post')
+export class PostController {
+  @Post()
+  @Security.CheckSignedCSRFToken(JwtCSRFTokenProfile)
+  createPost(...) {}
+}
+```
+
+In the above example, `getSessionIDforValidate` is configured to decompose the jwt token in the autorization header of the request object and return the jwtId.
+
+Therefore, `getSessionIDforCreate`, `getSessionIDforValidate` must be implemented to return **"same value"**. However, it is designed to implement two methods separately because the way data is **delivered when returning the credentials to Response and when entering Request may differ**.
+
+###### getSecretKey
+
+The method must be implemented to return the key value to be used to sign the CSRF token. In general, it is best implemented to import from **configService**.
+
+<br/>
+
+> The signed CSRF token shall be signed based on the credentials contained in the request object. When using the JWT-based authentication protocol, one of the following data may be typically selected.
+
+> 1.  JWT Access Token String
+> 2.  Claim value unique to each JWT Access token, (e.g [JWT "jti" claim](https://auth0.com/docs/secure/tokens/json-web-tokens/json-web-token-claims))
+
+> If you are using a session-based authentication protocol, it is best to return the session key value.
 
 <br/>
 
@@ -390,7 +480,57 @@ export class ForbiddenIpAddressError extends SecurityModuleError {
 
 ### CSRF Protection
 
-> NOTE : It will be added to the next version.
+The package provides the ability to defend [CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) . The CSRF defense capabilities currently available are based on the CSRF tokens signed by the HMAC algorithm, including the authentication information contained in the session or JWT.
+
+The package must be implemented by the developer in [SignedCSRFTokenSecurityProfile](#signed-csrf-token-profile) to ensure security so that one of the following values is included in the CSRF token.
+
+- A session-dependent value that changes with each login session
+- A random value (e.g. UUID) within a JWT that changes every time a JWT is created.
+
+The package provides additional security features for CSRF tokens, including random numbers and timestamp.
+
+<br/>
+
+#### Controller or API Method Level
+
+##### CSRF Token Generate
+
+```typescript
+// auth.controller.ts
+@Controller('auth')
+export class AuthController {
+  @Post('login')
+  @Security.GenSignedCSRFToken(JwtCSRFTokenProfile) // set response.header['x-csrf-token']
+  login() {
+    return {
+      accessToken: <<user jwt access token>>,
+      ...
+    };
+  }
+}
+```
+
+Create a CSRF token using `@Security.GenSignedCSRFToken` and automatically include the CSRF token you created in the **'x-csrf-token'** response header. Both method level and class level are available.
+You can easily issue CSRF tokens just by applying the decorator, but you need to configure the **controller method knowing that the return value** of the method with the decorator applied is delivered by the argument of `getSessionIDforCreate` in `SignedCSRFTokenSecurityProfile`.
+
+<br/>
+
+##### CSRF Token Validate (Check)
+
+```typescript
+// post.controller.ts
+@Controller('post')
+@Security.CheckSignedCSRFToken(JwtCSRFTokenProfile) // validate csrf token
+export class PostController {
+  @Post()
+  createPost(...) {}
+}
+```
+
+You can use `@Security.CheckSignifiedCSRFToken` to import and verify the **CSRF token contained in the 'x-csrf-token' request header.** The token is a value hashed into the HMAC algorithm based on the value returned by the `getSecretKey` in the `SignedCSRFTokenSecurityProfile`, so it cannot be forged by an attacker unless you know the `getSecretKey`.
+You can also verify that the person who issued the CSRF token sent the request by **comparing the authentication information** returned by the `getSessionIDforValidate` in the `SignedCSRFSecurityProfile` with the authentication information contained in the current CSRF token.
+
+<br/>
 
 <br/>
 

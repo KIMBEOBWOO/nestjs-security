@@ -9,8 +9,9 @@ import {
 import { NestApplication } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { CSRF_TOKEN_HEADER, Security } from '../../src';
-import { AppModule, HmacCSRFTokenProfile, HmacCSRFTokenProfile2 } from '../fixtures';
+import { AppModule, JwtCSRFTokenProfile, SessionCSRFTokenProfile } from '../fixtures';
 import * as request from 'supertest';
+import { sign } from 'jsonwebtoken';
 
 const testSessionId = 'test-session-id';
 
@@ -46,32 +47,31 @@ class TestController {
   }
 
   @Post('valid/single-profile')
-  @Security.CheckSignedCSRFToken(HmacCSRFTokenProfile)
+  @Security.CheckSignedCSRFToken(JwtCSRFTokenProfile)
   validProfile() {
     return true;
   }
 
   @Post('valid/one-of-profiles')
-  @Security.CheckSignedCSRFToken(HmacCSRFTokenProfile, HmacCSRFTokenProfile2)
+  @Security.CheckSignedCSRFToken(JwtCSRFTokenProfile, SessionCSRFTokenProfile)
   validOneOfProfiles() {
     return true;
   }
 
   @Post('invalid/single-profile')
-  @Security.CheckSignedCSRFToken(HmacCSRFTokenProfile)
+  @Security.CheckSignedCSRFToken(JwtCSRFTokenProfile)
   invalidProfile() {
     return true;
   }
 
   @Post('invalid/all-profiles')
-  @Security.CheckSignedCSRFToken(HmacCSRFTokenProfile, HmacCSRFTokenProfile2)
+  @Security.CheckSignedCSRFToken(JwtCSRFTokenProfile, SessionCSRFTokenProfile)
   invalidAllProfiles() {
     return true;
   }
 }
 
-const signedCSRFTokenProfile = new HmacCSRFTokenProfile();
-const signedCSRFTokenProfile2 = new HmacCSRFTokenProfile2();
+const signedCSRFTokenProfile = new JwtCSRFTokenProfile();
 
 /**
  * This file is used to test the CheckSignedCSRFToken decorator
@@ -102,97 +102,76 @@ describe('@Security.CheckSignedCSRFToken', () => {
     });
 
     it('should return true if a request comes in with a single profile applied and contain valid CSRF Token', async () => {
-      const csrfTokens = [
-        await signedCSRFTokenProfile.generateCSRFToken({
-          user: {
-            id: testSessionId,
-          },
-        } as any),
-      ];
+      const accessToken = sign({ id: 12345 }, 'secret', {
+        jwtid: '1234',
+      });
+      const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
+        accessToken,
+      });
 
-      for await (const csrfToken of csrfTokens) {
-        await request(app.getHttpServer())
-          .post('/valid/single-profile')
-          .set(CSRF_TOKEN_HEADER, csrfToken)
-          .expect(HttpStatus.CREATED);
-      }
+      await request(app.getHttpServer())
+        .post('/valid/single-profile')
+        .set('Authorization', accessToken)
+        .set(CSRF_TOKEN_HEADER, csrfToken)
+        .expect(HttpStatus.CREATED);
     });
 
     it('should return true if a request comes in with a multiple profile applied and pass through one of profiles', async () => {
-      const csrfTokens = [
-        await signedCSRFTokenProfile.generateCSRFToken({
-          user: {
-            id: testSessionId,
-          },
-        } as any),
-        await signedCSRFTokenProfile2.generateCSRFToken({
-          user: {
-            id: testSessionId,
-          },
-        } as any),
-      ];
+      const accessToken = sign({ id: 12345 }, 'secret', {
+        jwtid: '1234',
+      });
+      const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
+        accessToken,
+      });
 
-      for await (const csrfToken of csrfTokens) {
-        await request(app.getHttpServer())
-          .post('/valid/one-of-profiles')
-          .set(CSRF_TOKEN_HEADER, csrfToken)
-          .expect(HttpStatus.CREATED);
-      }
+      await request(app.getHttpServer())
+        .post('/valid/one-of-profiles')
+        .set('Authorization', accessToken)
+        .set(CSRF_TOKEN_HEADER, csrfToken)
+        .expect(HttpStatus.CREATED);
     });
 
     it('should return false if a request comes in with a single profile applied and contain invalid CSRF Token', async () => {
-      const csrfTokens = [
-        await signedCSRFTokenProfile.generateCSRFToken({
-          user: {
-            id: testSessionId + 'invalid',
-          },
-        } as any),
-      ];
+      const accessToken = sign({ id: 12345 }, 'secret', {
+        jwtid: '1234',
+      });
+      const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
+        accessToken,
+      });
 
-      for await (const csrfToken of csrfTokens) {
-        await request(app.getHttpServer())
-          .post('/invalid/single-profile')
-          .set(CSRF_TOKEN_HEADER, csrfToken)
-          .expect(HttpStatus.FORBIDDEN);
-      }
+      await request(app.getHttpServer())
+        .post('/invalid/single-profile')
+        .set(CSRF_TOKEN_HEADER, csrfToken)
+        .expect(HttpStatus.FORBIDDEN);
     });
 
     it('should return false if a request comes in with a multiple profile applied and falied all profiles', async () => {
-      const csrfTokens = [
-        await signedCSRFTokenProfile.generateCSRFToken({
-          user: {
-            id: testSessionId + 'invalid',
-          },
-        } as any),
-        await signedCSRFTokenProfile2.generateCSRFToken({
-          user: {
-            id: testSessionId + 'invalid',
-          },
-        } as any),
-      ];
+      const accessToken = sign({ id: 12345 }, 'secret', {
+        jwtid: '12345',
+      });
+      const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
+        accessToken,
+      });
 
-      for await (const csrfToken of csrfTokens) {
-        await request(app.getHttpServer())
-          .post('/invalid/all-profiles')
-          .set(CSRF_TOKEN_HEADER, csrfToken)
-          .expect(HttpStatus.FORBIDDEN);
-      }
+      await request(app.getHttpServer())
+        .post('/invalid/all-profiles')
+        .set(CSRF_TOKEN_HEADER, csrfToken)
+        .expect(HttpStatus.FORBIDDEN);
     });
   });
 
   describe('CSRF Token integrity', () => {
     it('if session id is changed, the CSRF token must be invalid', async () => {
-      const originalSessionId = testSessionId + '-original';
-
+      const accessToken = sign({ id: 12345 }, 'secret', {
+        jwtid: testSessionId + 111,
+      });
       /**
        * Generate CSRF token with original session id
        * - current request session id is 'test-session-id', but the CSRF token is generated with 'test-session-id-original'
        */
       const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
-        user: {
-          id: originalSessionId,
-        },
-      } as any);
+        accessToken,
+      });
 
       await request(app.getHttpServer())
         .post('/invalid/single-profile')
@@ -201,27 +180,30 @@ describe('@Security.CheckSignedCSRFToken', () => {
     });
 
     it('if the CSRF token is forgerys, the CSRF token must be invalid', async () => {
+      const accessToken = sign({ id: 12345 }, 'secret', {
+        jwtid: testSessionId + 111,
+      });
       const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
-        user: {
-          id: testSessionId,
-        },
-      } as any);
+        accessToken,
+      });
 
       // change one character of the CSRF token
       const forgeryCsrfToken = csrfToken.slice(0, -1) + 'A';
 
       await request(app.getHttpServer())
         .post('/invalid/single-profile')
+        .set('Authorization', accessToken)
         .set(CSRF_TOKEN_HEADER, forgeryCsrfToken)
         .expect(HttpStatus.FORBIDDEN);
     });
 
     it('if the CSRF token Message is forgerys, the CSRF token must be invalid', async () => {
+      const accessToken = sign({ id: 12345 }, 'secret', {
+        jwtid: testSessionId,
+      });
       const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
-        user: {
-          id: testSessionId,
-        },
-      } as any);
+        accessToken,
+      });
 
       // change one character of the CSRF token message
       const forgeryCsrfToken =
@@ -231,6 +213,7 @@ describe('@Security.CheckSignedCSRFToken', () => {
 
       await request(app.getHttpServer())
         .post('/invalid/single-profile')
+        .set('Authorization', accessToken)
         .set(CSRF_TOKEN_HEADER, forgeryCsrfToken)
         .expect(HttpStatus.FORBIDDEN);
     });

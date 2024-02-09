@@ -1,10 +1,11 @@
 import { Injectable, ExecutionContext, Controller, UseGuards, Get } from '@nestjs/common';
 import { CSRF_TOKEN_HEADER, Security } from '../../src';
-import { AppModule, HmacCSRFTokenProfile } from '../fixtures';
+import { AppModule, JwtCSRFTokenProfile } from '../fixtures';
 import * as request from 'supertest';
 import * as crypto from 'crypto';
 import { NestApplication } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
+import { sign } from 'jsonwebtoken';
 
 const testSessionId = 'test-session-id';
 
@@ -27,11 +28,13 @@ class TestReqUserGuard {
 
 @Controller()
 class TestController {
-  @Security.GenSignedCSRFToken(HmacCSRFTokenProfile)
+  @Security.GenSignedCSRFToken(JwtCSRFTokenProfile)
   @UseGuards(TestReqUserGuard)
   @Get('signed-csrf-token')
   generateSignedCSRFToken() {
-    return true;
+    return {
+      accessToken: sign({ id: 123 }, 'secretKey', { jwtid: testSessionId }),
+    };
   }
 }
 
@@ -68,7 +71,7 @@ describe('@Security.GenSignedCSRFToken', () => {
   it('The generated CSRF token "message" must have the format {sessionId}!{timestamp}!{nonce}.', async () => {
     // mock Date.now()
     const testTimestamp = 1234567890;
-    jest.spyOn(Date, 'now').mockReturnValueOnce(testTimestamp);
+    jest.spyOn(Date, 'now').mockReturnValue(testTimestamp);
 
     // when
     const response = await request(app.getHttpServer()).get('/signed-csrf-token');

@@ -10,8 +10,8 @@ import {
   EnvWhiteListProfile,
   CIDRBlackListProfile,
   CIDRWhiteListProfile,
-  HmacCSRFTokenProfile,
-  HmacCSRFTokenProfile2,
+  JwtCSRFTokenProfile,
+  SessionCSRFTokenProfile,
 } from './security-profile';
 
 @Module({
@@ -30,9 +30,8 @@ import {
     EnvWhiteListProfile,
     CIDRBlackListProfile,
     CIDRWhiteListProfile,
-
-    HmacCSRFTokenProfile,
-    HmacCSRFTokenProfile2,
+    JwtCSRFTokenProfile,
+    SessionCSRFTokenProfile,
   ],
 })
 export class AppModule {}

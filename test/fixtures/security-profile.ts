@@ -5,6 +5,7 @@ import {
   SecurityProfileSchema,
   SignedCSRFTokenSecurityProfile,
 } from '../../src';
+import { decode } from 'jsonwebtoken';
 
 @SecurityProfileSchema()
 export class NaiveWhiteListProfile extends IpWhiteListValidationSecurityProfile {
@@ -81,9 +82,17 @@ export class EnvBlackListProfile extends IpBlackListValidationSecurityProfile {
 }
 
 @SecurityProfileSchema()
-export class HmacCSRFTokenProfile extends SignedCSRFTokenSecurityProfile {
-  getSessionID(request: Request): string | Promise<string> {
-    return (request as any).user.id;
+export class JwtCSRFTokenProfile extends SignedCSRFTokenSecurityProfile {
+  getSessionIDforCreate(data: any): string | Promise<string> {
+    const accessToken = data?.accessToken;
+    const decoded = decode(accessToken) as any;
+    return decoded?.jti;
+  }
+
+  getSessionIDforValidate(request: Request): string | Promise<string> {
+    const accessToken = (request.headers as any).authorization;
+    const decoded = decode(accessToken) as any;
+    return decoded?.jti;
   }
 
   getSecretKey(): string | Promise<string> {
@@ -92,9 +101,13 @@ export class HmacCSRFTokenProfile extends SignedCSRFTokenSecurityProfile {
 }
 
 @SecurityProfileSchema()
-export class HmacCSRFTokenProfile2 extends SignedCSRFTokenSecurityProfile {
-  getSessionID(request: Request): string | Promise<string> {
-    return (request as any).user.id;
+export class SessionCSRFTokenProfile extends SignedCSRFTokenSecurityProfile {
+  getSessionIDforCreate(data: any): string | Promise<string> {
+    return (data as any).sessionId;
+  }
+
+  getSessionIDforValidate(request: Request): string | Promise<string> {
+    return (request as any)?.session?.id;
   }
 
   getSecretKey(): string | Promise<string> {

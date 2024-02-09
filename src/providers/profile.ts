@@ -6,7 +6,6 @@ import {
   IpWhiteListValidationSchema,
   IpBlackListValidationSchema,
   SignedCSRFTokenValidationSchema,
-  SignedCSRFTokenType,
 } from '../interfaces';
 import { isIpV4 } from '../utils';
 import * as crypto from 'crypto';
@@ -79,14 +78,13 @@ export abstract class SignedCSRFTokenSecurityProfile
     }
 
     // if requestCsrfToken is not equal to expectedCsrfToken, return false.
-    const sessionID = await this.getSessionID(request);
-    if (!(await this.validateCSRFToken(requestCsrfToken, sessionID))) return false;
+    if (!(await this.validateCSRFToken(request))) return false;
 
     return true;
   }
 
-  async generateCSRFToken(request: Request): Promise<SignedCSRFTokenType> {
-    const sessionID = await this.getSessionID(request);
+  async generateCSRFToken(data: any): Promise<string> {
+    const sessionID = await this.getSessionIDforCreate(data);
 
     const timestamp = Date.now(); // timestamp
     const nonce = Math.random().toString(36).substring(2, 15); // nonce for recycle attack
@@ -95,12 +93,15 @@ export abstract class SignedCSRFTokenSecurityProfile
     return this.sign(message);
   }
 
-  async validateCSRFToken(token: string, sessionId: string): Promise<boolean> {
-    const [, message] = token.split('.');
-    const [sessionID] = message.split('!');
+  async validateCSRFToken(request: Request): Promise<boolean> {
+    const currentSessionId = await this.getSessionIDforValidate(request);
+    const token = (request.headers as any)[CSRF_TOKEN_HEADER] as string;
+    const message = token.split('.')[1];
+    const [sessionId] = message.split('!');
     const expectedCsrfToken = await this.sign(message);
 
-    if (token === expectedCsrfToken && sessionID === sessionId) {
+    // if token hashed message is equal to expectedCsrfToken and requestSessionId is equal to sessionId, return true.
+    if (token === expectedCsrfToken && currentSessionId === sessionId) {
       return true;
     } else {
       return false;
@@ -139,7 +140,13 @@ export abstract class SignedCSRFTokenSecurityProfile
    * @param request request to get session id
    * @returns session id
    */
-  abstract getSessionID(request: Request): string | Promise<string>;
+  abstract getSessionIDforCreate(data: any): string | Promise<string>;
+
+  /**
+   * get session id from request
+   * @param request request to get session id
+   */
+  abstract getSessionIDforValidate(request: Request): string | Promise<string>;
 
   /**
    * get secret key for hmac
