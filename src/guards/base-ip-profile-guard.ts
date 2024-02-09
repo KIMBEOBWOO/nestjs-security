@@ -7,7 +7,7 @@ import { ForbiddenIpAddressError, MissingIpAddressInRequestError } from '../exce
 import { ProfileStorage, ProfileValidator } from '../providers';
 
 @Injectable()
-export abstract class BaseProfileGuard implements CanActivate {
+export abstract class BaseIpProfileGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly profileStorage: ProfileStorage,

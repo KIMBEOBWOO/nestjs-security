@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ProfileOperator, ProfileOperatorType } from '../common';
-import { BaseProfileGuard } from './base-profile-guard';
+import { BaseIpProfileGuard } from './base-ip-profile-guard';
 
 @Injectable()
-export class IpBlackListGuard extends BaseProfileGuard {
+export class IpBlackListGuard extends BaseIpProfileGuard {
   protected getOperator(): ProfileOperatorType {
     return ProfileOperator.FOR_EVERY;
   }
