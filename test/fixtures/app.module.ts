@@ -11,6 +11,7 @@ import {
   CIDRBlackListProfile,
   CIDRWhiteListProfile,
   HmacCSRFTokenProfile,
+  HmacCSRFTokenProfile2,
 } from './security-profile';
 
 @Module({
@@ -31,6 +32,7 @@ import {
     CIDRWhiteListProfile,
 
     HmacCSRFTokenProfile,
+    HmacCSRFTokenProfile2,
   ],
 })
 export class AppModule {}

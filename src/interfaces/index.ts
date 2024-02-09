@@ -24,6 +24,11 @@ export interface CSRFTokenValidationSchema {
    * generate CSRF token
    */
   generateCSRFToken(...param: unknown[]): string | Promise<string>;
+
+  /**
+   * validate CSRF token
+   */
+  validateCSRFToken(...param: unknown[]): boolean | Promise<boolean>;
 }
 
 /**
@@ -35,6 +40,10 @@ export const isCSRFTokenValidationSchema = (obj: any): obj is CSRFTokenValidatio
   return obj.generateCSRFToken !== undefined;
 };
 
+export type SignedCSRFTokenMessageType = Request;
+export type SignedCSRFTokenType = string;
+
 export interface SignedCSRFTokenValidationSchema extends CSRFTokenValidationSchema {
-  generateCSRFToken(request: Request): string | Promise<string>;
+  generateCSRFToken(message: SignedCSRFTokenMessageType): Promise<SignedCSRFTokenType>;
+  // validateCSRFToken(token: SignedCSRFTokenType): Promise<boolean>;
 }

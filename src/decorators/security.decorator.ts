@@ -50,8 +50,8 @@ export const Security = {
    * Check Signed CSRF Token Security Decorator
    * @param profiles The security profiles that are contain the rules for generating the CSRF token
    */
-  CheckSignedCSRFToken: (profile: Type<SignedCSRFTokenSecurityProfile>) =>
-    applyDecorators(AllowProfiles(profile), UseGuards(SignedCSRFTokenGuard)),
+  CheckSignedCSRFToken: (...profiles: ProfileInputType<SignedCSRFTokenSecurityProfile>) =>
+    applyDecorators(AllowProfiles(...profiles), UseGuards(SignedCSRFTokenGuard)),
 } as const;
 
 export const DEFULAT_SECURITY_PROFILE_NAME = '@nestj-security/default';

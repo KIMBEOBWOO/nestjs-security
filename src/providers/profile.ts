@@ -6,9 +6,11 @@ import {
   IpWhiteListValidationSchema,
   IpBlackListValidationSchema,
   SignedCSRFTokenValidationSchema,
+  SignedCSRFTokenType,
 } from '../interfaces';
 import { isIpV4 } from '../utils';
 import * as crypto from 'crypto';
+import { CSRF_TOKEN_HEADER } from '../common';
 
 export abstract class IpWhiteListValidationSecurityProfile
   implements SecurityProfile, IpWhiteListValidationSchema
@@ -64,39 +66,65 @@ export abstract class SignedCSRFTokenSecurityProfile
   implements SecurityProfile, SignedCSRFTokenValidationSchema
 {
   async validate(request: Request) {
-    const csrfToken = (request.headers as any)['x-csrf-token'] as string;
-    const expectedCsrfToken = await this.generateCSRFToken(request);
+    const requestCsrfToken = (request.headers as any)[CSRF_TOKEN_HEADER] as string;
 
-    // if csrfToken is not equal to expectedCsrfToken, return false.
+    // for reduce hmac calculation, check token format first.
+    // if token format is invalid, just return false.
     if (
-      typeof csrfToken !== 'string' ||
-      csrfToken.length < 10 ||
-      this.checkFormat(csrfToken) ||
-      csrfToken !== expectedCsrfToken
+      typeof requestCsrfToken !== 'string' ||
+      requestCsrfToken.length < 10 ||
+      !this.hasValidSignedCSRFTokenFormat(requestCsrfToken)
     ) {
       return false;
     }
 
+    // if requestCsrfToken is not equal to expectedCsrfToken, return false.
+    const sessionID = await this.getSessionID(request);
+    if (!(await this.validateCSRFToken(requestCsrfToken, sessionID))) return false;
+
     return true;
   }
 
-  async generateCSRFToken(request: Request) {
+  async generateCSRFToken(request: Request): Promise<SignedCSRFTokenType> {
     const sessionID = await this.getSessionID(request);
 
     const timestamp = Date.now(); // timestamp
     const nonce = Math.random().toString(36).substring(2, 15); // nonce for recycle attack
     const message = `${sessionID}!${timestamp}!${nonce}`; // message (csrf payload)
 
+    return this.sign(message);
+  }
+
+  async validateCSRFToken(token: string, sessionId: string): Promise<boolean> {
+    const [, message] = token.split('.');
+    const [sessionID] = message.split('!');
+    const expectedCsrfToken = await this.sign(message);
+
+    if (token === expectedCsrfToken && sessionID === sessionId) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**
+   * sign csrf token
+   * @param message message to sign
+   * @returns signed csrf token
+   */
+  private async sign(message: string) {
     const secretKey = await this.getSecretKey(); // secret key for hmac
     const hmac = crypto.createHmac('sha256', secretKey).update(message).digest('hex');
 
     return `${hmac}.${message}`;
   }
 
-  abstract getSessionID(request: Request): string | Promise<string>;
-  abstract getSecretKey(): string | Promise<string>;
-
-  private checkFormat(csrfToken: string) {
+  /**
+   * check if csrf token has valid format
+   * @param csrfToken csrf token to check
+   * @returns true if csrf token has valid format
+   */
+  private hasValidSignedCSRFTokenFormat(csrfToken: string) {
     const [hmac, message] = csrfToken.split('.');
     if (!hmac || !message) return false;
 
@@ -105,4 +133,17 @@ export abstract class SignedCSRFTokenSecurityProfile
 
     return true;
   }
+
+  /**
+   * get session id from request
+   * @param request request to get session id
+   * @returns session id
+   */
+  abstract getSessionID(request: Request): string | Promise<string>;
+
+  /**
+   * get secret key for hmac
+   * @returns secret key
+   */
+  abstract getSecretKey(): string | Promise<string>;
 }

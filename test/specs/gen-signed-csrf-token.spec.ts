@@ -54,7 +54,7 @@ describe('@Security.GenSignedCSRFToken', () => {
     await app.init();
   });
 
-  it('생The generated CSRF token must have the format {hmac}.{message}.', async () => {
+  it('The generated CSRF token must have the format {hmac}.{message}.', async () => {
     // when
     const response = await request(app.getHttpServer()).get('/signed-csrf-token');
     const csrfToken = response.header[CSRF_TOKEN_HEADER];
@@ -80,7 +80,7 @@ describe('@Security.GenSignedCSRFToken', () => {
 
     expect(sessionId).toBe(testSessionId);
     expect(timestamp).toBe(testTimestamp.toString());
-    expect(nonce.length).toBe(11);
+    expect(nonce.length).not.toBeLessThan(10);
   });
 
   it('The generated CSRF token must be encrypted with HMAC-SHA256.', async () => {

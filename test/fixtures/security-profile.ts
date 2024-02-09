@@ -90,3 +90,14 @@ export class HmacCSRFTokenProfile extends SignedCSRFTokenSecurityProfile {
     return 'secretKey';
   }
 }
+
+@SecurityProfileSchema()
+export class HmacCSRFTokenProfile2 extends SignedCSRFTokenSecurityProfile {
+  getSessionID(request: Request): string | Promise<string> {
+    return (request as any).user.id;
+  }
+
+  getSecretKey(): string | Promise<string> {
+    return 'secretKey2';
+  }
+}
