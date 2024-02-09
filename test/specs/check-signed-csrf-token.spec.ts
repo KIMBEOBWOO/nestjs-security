@@ -92,89 +92,147 @@ describe('@Security.CheckSignedCSRFToken', () => {
     await app.init();
   });
 
-  it('should return true when a request comes in without a decorator applied.', () => {
-    return request(app.getHttpServer()).post('/no-decorator').expect(HttpStatus.CREATED);
+  describe('Profile behavior', () => {
+    it('should return true when a request comes in without a decorator applied.', () => {
+      return request(app.getHttpServer()).post('/no-decorator').expect(HttpStatus.CREATED);
+    });
+
+    it('should return true when a request comes in without a security profile applied.', () => {
+      return request(app.getHttpServer()).post('/no-profile').expect(HttpStatus.CREATED);
+    });
+
+    it('should return true if a request comes in with a single profile applied and contain valid CSRF Token', async () => {
+      const csrfTokens = [
+        await signedCSRFTokenProfile.generateCSRFToken({
+          user: {
+            id: testSessionId,
+          },
+        } as any),
+      ];
+
+      for await (const csrfToken of csrfTokens) {
+        await request(app.getHttpServer())
+          .post('/valid/single-profile')
+          .set(CSRF_TOKEN_HEADER, csrfToken)
+          .expect(HttpStatus.CREATED);
+      }
+    });
+
+    it('should return true if a request comes in with a multiple profile applied and pass through one of profiles', async () => {
+      const csrfTokens = [
+        await signedCSRFTokenProfile.generateCSRFToken({
+          user: {
+            id: testSessionId,
+          },
+        } as any),
+        await signedCSRFTokenProfile2.generateCSRFToken({
+          user: {
+            id: testSessionId,
+          },
+        } as any),
+      ];
+
+      for await (const csrfToken of csrfTokens) {
+        await request(app.getHttpServer())
+          .post('/valid/one-of-profiles')
+          .set(CSRF_TOKEN_HEADER, csrfToken)
+          .expect(HttpStatus.CREATED);
+      }
+    });
+
+    it('should return false if a request comes in with a single profile applied and contain invalid CSRF Token', async () => {
+      const csrfTokens = [
+        await signedCSRFTokenProfile.generateCSRFToken({
+          user: {
+            id: testSessionId + 'invalid',
+          },
+        } as any),
+      ];
+
+      for await (const csrfToken of csrfTokens) {
+        await request(app.getHttpServer())
+          .post('/invalid/single-profile')
+          .set(CSRF_TOKEN_HEADER, csrfToken)
+          .expect(HttpStatus.FORBIDDEN);
+      }
+    });
+
+    it('should return false if a request comes in with a multiple profile applied and falied all profiles', async () => {
+      const csrfTokens = [
+        await signedCSRFTokenProfile.generateCSRFToken({
+          user: {
+            id: testSessionId + 'invalid',
+          },
+        } as any),
+        await signedCSRFTokenProfile2.generateCSRFToken({
+          user: {
+            id: testSessionId + 'invalid',
+          },
+        } as any),
+      ];
+
+      for await (const csrfToken of csrfTokens) {
+        await request(app.getHttpServer())
+          .post('/invalid/all-profiles')
+          .set(CSRF_TOKEN_HEADER, csrfToken)
+          .expect(HttpStatus.FORBIDDEN);
+      }
+    });
   });
 
-  it('should return true when a request comes in without a security profile applied.', () => {
-    return request(app.getHttpServer()).post('/no-profile').expect(HttpStatus.CREATED);
-  });
+  describe('CSRF Token integrity', () => {
+    it('if session id is changed, the CSRF token must be invalid', async () => {
+      const originalSessionId = testSessionId + '-original';
 
-  it('should return true if a request comes in with a single profile applied and contain valid CSRF Token', async () => {
-    const csrfTokens = [
-      await signedCSRFTokenProfile.generateCSRFToken({
+      /**
+       * Generate CSRF token with original session id
+       * - current request session id is 'test-session-id', but the CSRF token is generated with 'test-session-id-original'
+       */
+      const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
         user: {
-          id: testSessionId,
+          id: originalSessionId,
         },
-      } as any),
-    ];
+      } as any);
 
-    for await (const csrfToken of csrfTokens) {
-      await request(app.getHttpServer())
-        .post('/valid/single-profile')
-        .set(CSRF_TOKEN_HEADER, csrfToken)
-        .expect(HttpStatus.CREATED);
-    }
-  });
-
-  it('should return true if a request comes in with a multiple profile applied and pass through one of profiles', async () => {
-    const csrfTokens = [
-      await signedCSRFTokenProfile.generateCSRFToken({
-        user: {
-          id: testSessionId,
-        },
-      } as any),
-      await signedCSRFTokenProfile2.generateCSRFToken({
-        user: {
-          id: testSessionId,
-        },
-      } as any),
-    ];
-
-    for await (const csrfToken of csrfTokens) {
-      await request(app.getHttpServer())
-        .post('/valid/one-of-profiles')
-        .set(CSRF_TOKEN_HEADER, csrfToken)
-        .expect(HttpStatus.CREATED);
-    }
-  });
-
-  it('should return false if a request comes in with a single profile applied and contain invalid CSRF Token', async () => {
-    const csrfTokens = [
-      await signedCSRFTokenProfile.generateCSRFToken({
-        user: {
-          id: testSessionId + 'invalid',
-        },
-      } as any),
-    ];
-
-    for await (const csrfToken of csrfTokens) {
       await request(app.getHttpServer())
         .post('/invalid/single-profile')
         .set(CSRF_TOKEN_HEADER, csrfToken)
         .expect(HttpStatus.FORBIDDEN);
-    }
-  });
+    });
 
-  it('should return false if a request comes in with a multiple profile applied and falied all profiles', async () => {
-    const csrfTokens = [
-      await signedCSRFTokenProfile.generateCSRFToken({
+    it('if the CSRF token is forgerys, the CSRF token must be invalid', async () => {
+      const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
         user: {
-          id: testSessionId + 'invalid',
+          id: testSessionId,
         },
-      } as any),
-      await signedCSRFTokenProfile2.generateCSRFToken({
-        user: {
-          id: testSessionId + 'invalid',
-        },
-      } as any),
-    ];
+      } as any);
 
-    for await (const csrfToken of csrfTokens) {
+      // change one character of the CSRF token
+      const forgeryCsrfToken = csrfToken.slice(0, -1) + 'A';
+
       await request(app.getHttpServer())
-        .post('/invalid/all-profiles')
-        .set(CSRF_TOKEN_HEADER, csrfToken)
+        .post('/invalid/single-profile')
+        .set(CSRF_TOKEN_HEADER, forgeryCsrfToken)
         .expect(HttpStatus.FORBIDDEN);
-    }
+    });
+
+    it('if the CSRF token Message is forgerys, the CSRF token must be invalid', async () => {
+      const csrfToken = await signedCSRFTokenProfile.generateCSRFToken({
+        user: {
+          id: testSessionId,
+        },
+      } as any);
+
+      // change one character of the CSRF token message
+      const forgeryCsrfToken =
+        csrfToken.slice(0, csrfToken.indexOf('.')) +
+        '.' +
+        csrfToken.slice(csrfToken.indexOf('.') + 2);
+
+      await request(app.getHttpServer())
+        .post('/invalid/single-profile')
+        .set(CSRF_TOKEN_HEADER, forgeryCsrfToken)
+        .expect(HttpStatus.FORBIDDEN);
+    });
   });
 });
