@@ -1,7 +1,7 @@
 import { Controller, ExecutionContext, Injectable, Post, UseInterceptors } from '@nestjs/common';
 import { APP_GUARD, NestApplication } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
-import { AllowProfiles, CSRFTokenPostInterceptor } from '../../src';
+import { AllowProfiles, CSRFTokenPostInterceptor, CSRF_TOKEN_HEADER, Security } from '../../src';
 import {
   AppModule,
   EnvBlackListProfile,
@@ -61,15 +61,13 @@ export class TestController {
   }
 
   @Post('not-allowed-profile')
-  @AllowProfiles(EnvBlackListProfile)
-  @UseInterceptors(TestInterceptor)
+  @Security.GenSignedCSRFToken(EnvBlackListProfile as any)
   notAllowedProfile() {
     return 'test';
   }
 
   @Post('allowed-profile')
-  @AllowProfiles(HmacCSRFTokenProfile)
-  @UseInterceptors(TestInterceptor)
+  @Security.GenSignedCSRFToken(HmacCSRFTokenProfile)
   allowedProfile() {
     return 'test';
   }
@@ -121,7 +119,7 @@ describe('CSRFTokenPostInterceptor', () => {
 
   it('must create a CSRF token using a security profile and include the generated token in the specified response.', async () => {
     const response = await request(app.getHttpServer()).post('/allowed-profile').expect(201);
-    const csrfToken = response.header[TEST_HEADER_NAME];
+    const csrfToken = response.header[CSRF_TOKEN_HEADER];
 
     expect(csrfToken).toBeDefined();
     expect(csrfToken.length).toBeGreaterThan(10);
