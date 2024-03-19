@@ -116,7 +116,7 @@ describe('@Security.CheckSignedCSRFToken', () => {
         .expect(HttpStatus.CREATED);
     });
 
-    it('should return true if a request comes in with a multiple profile applied and pass through one of profiles', async () => {
+    it('should return true if a request comes in with a multiple profile applied and pass at least one profile', async () => {
       const accessToken = sign({ id: 12345 }, 'secret', {
         jwtid: '1234',
       });
